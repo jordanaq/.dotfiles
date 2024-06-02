@@ -4,8 +4,11 @@
 
 let
   shellAliases = {
+    b = "bat";
+    c = "clear";
     l = "eza -laG -F=always --icons=always";
     v = "nvim";
+    z = "zoxide";
   };
 in {
   programs = {

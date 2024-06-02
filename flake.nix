@@ -7,11 +7,11 @@
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-colors.url = "github:misterio77/nix-colors";
     hyprland.url = "github:hyprwm/Hyprland";
+    catppuccin.url = "github:catppuccin/nix";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, ... }:
+  outputs = inputs@{ self, nixpkgs, catppuccin, home-manager, ... }:
     let
       lib = nixpkgs.lib;
       system = "x86_64-linux";
@@ -30,7 +30,7 @@
 
         modules = [
           ./system/configuration.nix
-	  ./system/audio/default.nix
+          ./system/audio/default.nix
         ];
 
       };
@@ -42,6 +42,7 @@
 
         modules = [
           ./user/home.nix
+          catppuccin.homeManagerModules.catppuccin
         ];
 
         extraSpecialArgs = {

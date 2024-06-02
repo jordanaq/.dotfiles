@@ -1,9 +1,6 @@
-{ config, pkgs, nix-colors, ... }:
+{ config, pkgs, catppuccin, ... }:
 
 {
-  imports = [
-    nix-colors.homeManagerModules.default
-  ];
-
-  colorScheme = nix-colors.colorSchemes.catppuccin-macchiato;
+  catppuccin.flavor = "macchiato";
+  catppuccin.enable = true;
 }
