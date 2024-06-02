@@ -10,7 +10,23 @@
 
   gtk = {
     enable = true;
-    #cursorTheme = pkgs.catppuccin-cursors.macchiatoPink;
+
+    catppuccin = {
+      size = "standard";
+      tweaks = [
+        "normal";
+      ];
+    };
+
+    iconTheme = {
+      package = pkgs.papirus-icon-theme;
+      name = "Papirus";
+    };
+
+    font = {
+      name = "Inter";
+      size = 11;
+    }
   };
 
   home.packages = with pkgs; [
