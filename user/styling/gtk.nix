@@ -14,7 +14,7 @@
     catppuccin = {
       size = "standard";
       tweaks = [
-        "normal";
+        "normal"
       ];
     };
 
@@ -26,7 +26,7 @@
     font = {
       name = "Inter";
       size = 11;
-    }
+    };
   };
 
   home.packages = with pkgs; [
