@@ -9,6 +9,7 @@
     ./kitty
     ./misc
     ./neovim
+    ./thunar
     ./zoxide
   ];
 }
