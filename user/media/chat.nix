@@ -5,5 +5,6 @@
     discord
     revolt-desktop
     telegram-desktop
+    premid
   ];
 }
