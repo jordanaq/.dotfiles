@@ -39,7 +39,7 @@
         };
       };
 
-      extensions = with inputs.firefox-addons.packages."x86_64_linux"; [
+      extensions = with inputs.firefox-addons.packages."x86_64-linux"; [
         darkreader
         sponsorblock
       ];
