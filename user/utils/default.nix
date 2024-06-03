@@ -5,6 +5,7 @@
     ./bat
     ./btop
     ./git
+    ./keepass
     ./kitty
     ./misc
     ./neovim
