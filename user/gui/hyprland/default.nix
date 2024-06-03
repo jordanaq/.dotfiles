@@ -50,9 +50,9 @@ in {
       "general" = {
         "gaps_in" = "3";
         "gaps_out" = "10";
-	"border_size" = "3";
-	"col.active_border" = "0xfff5c2e7";
-	"col.inactive_border" = "0xff45475a";
+        "border_size" = "3";
+        "col.active_border" = "0xfff5c2e7";
+        "col.inactive_border" = "0xff45475a";
         # "col.group_border" = "0xff89dceb";
         # "col.group_border_active" = "0xfff9e2af";
         "layout" = "dwindle";
@@ -60,7 +60,7 @@ in {
 
       "dwindle" = {
         "pseudotile" = "1";
-	"force_split" = "10";
+        "force_split" = "10";
       };
 
       "decoration" = {
@@ -69,7 +69,7 @@ in {
         "drop_shadow" = "true";
         "shadow_range" = "50";
         "shadow_offset" = "-2.0 2.0";
-	"shadow_render_power" = "5";
+        "shadow_render_power" = "5";
         
         # Blur
         "blur" = {
@@ -93,13 +93,13 @@ in {
       "animations" = {
         "enabled" = "true";
         "first_launch_animation" = "true";
-	"bezier" = "overshot,0.13,0.99,0.29,1.1";
+        "bezier" = "overshot,0.13,0.99,0.29,1.1";
         "animation" = [
-	  "windows,1,4,overshot,slide"
+          "windows,1,4,overshot,slide"
           "border,1,10,default"
           "fade,1,10,default"
           "workspaces,1,6,overshot,slidevert"
-	];
+        ];
       };
 
       "source" = "~/${hypr-dir}/catppuccin/macchiato.conf";
@@ -152,7 +152,7 @@ in {
 
       bind = [
         # Utils
-        ", Print, exec, ~${hypr-dir}/scripts/screenshot"
+        ", Print, exec, ~/${hypr-dir}/scripts/screenshot"
         "$mod, T, exec, kitty"
         "$mod, space, exec, wofi --show drun"
 
@@ -169,11 +169,12 @@ in {
         "$mod, Right, movefocus, r"
         "$mod, F11, fullscreen, 1"
         "$mod, F12, fakefullscreen, "
-	"$mod, P, pseudo, "
+        "$mod, P, pseudo, "
+        "$mod, V, togglefloating, "
 
-	# Groups
-	"$mod, G, togglegroup"
-	"$mod, tab, changegroupactive"
+        # Groups
+        "$mod, G, togglegroup"
+        "$mod, tab, changegroupactive"
 
         # Workspaces
         "$mod, mouse_down, workspace, e-1"
