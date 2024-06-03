@@ -71,17 +71,16 @@
     bash
   ];
 
-  #programs.hyprland.enable = true;
-  programs.bash.blesh.enable = true;
   hardware.pulseaudio = {
     enable = true;
     extraConfig = ''
       set-default-sink alsa_output.usb-GuangZhou_FiiO_Electronics_Co._Ltd_FiiO_Q3_FA300243-00.analog-stereo
     '';
   };
-  hardware.bluetooth = {
-    enable = true;
-  };
+
+  hardware.bluetooth.enable = true;
+
+  hardware.opengl.enable = true;
 
   # Experimental features
   nix.settings.experimental-features = [
