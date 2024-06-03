@@ -1,5 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  programs.firefox.enable = true;
+  imports = [
+    ./firefox
+  ];
 }
