@@ -11,7 +11,7 @@
     catppuccin.url = "github:catppuccin/nix";
   };
 
-  outputs = inputs@{ self, nixpkgs, catppuccin, home-manager, ... }:
+  outputs = { self, nixpkgs, catppuccin, home-manager, ... }@inputs:
     let
       lib = nixpkgs.lib;
       system = "x86_64-linux";
@@ -32,7 +32,6 @@
             ./system/configuration.nix
             ./system/audio/default.nix
           ];
-
         };
       };
 
@@ -46,7 +45,7 @@
           ];
 
           extraSpecialArgs = {
-            inherit hyprland;
+            inherit inputs;
           };
         };
       };
