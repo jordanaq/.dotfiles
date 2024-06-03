@@ -8,11 +8,9 @@
 
     ./gui
 
-    ./media/browser.nix
-    ./media/camera.nix
-    ./media/chat.nix
+    ./media
 
-    ./programming/languages/default.nix
+    ./programming
 
     ./styling
 
