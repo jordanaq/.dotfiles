@@ -1,9 +1,9 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   programs.firefox = {
     enable = true;
-    profile.tsiru = {
+    profiles.tsiru = {
       search.engines = {
         "DuckDuckGo" = {
           urls = [{
@@ -36,9 +36,13 @@
               "@nix"
             ];
           }];
+        };
       };
+
+      extensions = with inputs.firefox-addons.packages."x86_64_linux"; [
+        darkreader
+        sponsorblock
+      ];
     };
-    
-    
   };
 }
