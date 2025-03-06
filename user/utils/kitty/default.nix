@@ -10,7 +10,7 @@
       size = 11;
     };
 
-    theme = "Catppuccin-Macchiato";
+    themeFile = "Catppuccin-Macchiato";
 
     settings = {
       scrollback_lines = 10000;
