@@ -25,6 +25,7 @@
       vim-nix
       neodev-nvim
 
+      neo-tree-nvim
       oil-nvim
       {
         plugin = catppuccin-nvim;
@@ -40,7 +41,7 @@
 
       {
         plugin = comment-nvim;
-	config = toLua "require(\"Comment\").setup()";
+	      config = toLua "require(\"Comment\").setup()";
       }
 
       nvim-cmp 
