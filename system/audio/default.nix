@@ -2,7 +2,7 @@
 
 {
   services.pipewire = {
-    enable = true;
+    enable = false;
     wireplumber.enable = true;
   };
 }
