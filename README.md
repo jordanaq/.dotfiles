@@ -24,7 +24,7 @@ git clone git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
 With elevated permissions,
 
 ```bash
-nixos-rebuild switch --upgrade --flake ~/.dotfiles
+nixos-rebuild switch --upgrade --flake ~/.dotfiles#tsiru-nixos
 ```
 
 ### To update via home-manager
