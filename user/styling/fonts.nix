@@ -8,7 +8,7 @@
     inter
     lato
     noto-fonts
-    nerdfonts
+    hack-font
     opensans
     fontawesome
   ];
@@ -17,6 +17,7 @@
     enable = true;
 
     defaultFonts.monospace = [
+      "hack"
       "NotoSansMono"
       "hasklig"
       "monospace"
