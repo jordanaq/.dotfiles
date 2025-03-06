@@ -11,13 +11,6 @@
   gtk = {
     enable = true;
 
-    catppuccin = {
-      size = "standard";
-      tweaks = [
-        "normal"
-      ];
-    };
-
     iconTheme = {
       package = pkgs.papirus-icon-theme;
       name = "Papirus";
