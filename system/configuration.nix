@@ -71,6 +71,18 @@
     bash
   ];
 
+  services.displayManager.ly = {
+    enable = true;
+  };
+
+  services.xserver.enable = true;
+  services.xserver.desktopManager.xfce.enable = true;
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+
+  # services.xserver.libinput.enable = true;
   hardware.pulseaudio = {
     enable = true;
     extraConfig = ''
@@ -89,5 +101,5 @@
   ];
 
   # Set system state
-  system.stateVersion = "unstable";
+  system.stateVersion = "25.05";
 }
