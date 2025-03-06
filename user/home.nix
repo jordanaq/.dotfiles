@@ -20,7 +20,7 @@
   home = {
     username = "tsiru";
     homeDirectory = "/home/tsiru";
-    stateVersion = "24.05"; # Read home manager release notes before changing.
+    stateVersion = "25.05"; # Read home manager release notes before changing.
 
     # Packages
     packages = with pkgs; [
