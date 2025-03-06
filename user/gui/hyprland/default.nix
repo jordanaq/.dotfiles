@@ -9,11 +9,11 @@ in {
   ];
 
   home.packages = with pkgs; [
-    polkit-kde-agent
     xdg-desktop-portal-hyprland
     libsForQt5.qt5.qtwayland
+    libsForQt5.polkit-kde-agent
     kdePackages.qtwayland
-    xwaylandvideobridge
+    kdePackages.xwaylandvideobridge
     tty-clock
     hyprcursor
     catppuccin-cursors
