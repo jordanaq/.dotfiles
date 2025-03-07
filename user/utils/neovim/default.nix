@@ -7,8 +7,8 @@
   in {
     enable = true;
 
-    #package = pkgs.neovim;
-    #defaultEditor = true;
+    package = pkgs.neovim-unwrapped;
+    defaultEditor = true;
 
     viAlias = true;
     vimAlias = true;
@@ -59,7 +59,6 @@
       telescope-fzf-native-nvim
 
       luasnip
-      friendly-snippets
 
       lualine-nvim
       nvim-web-devicons
