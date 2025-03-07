@@ -6,9 +6,17 @@
     userName = "jordanaq";
     userEmail = "quinn.jordan@proton.me";
     aliases = {
-      pu = "push";
-      co = "checkout";
-      cm = "commit";
+      a = "add";
+      cam = "commit -am";
+      ch = "checkout";
+      co = "commit";
+      cm = "commit -m";
+      com = "commit -m";
+      d = "diff";
+      pl = "pull";
+      ps = "push";
+      s = "status";
+      st = "status";
     };
   };
 }
