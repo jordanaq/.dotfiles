@@ -9,6 +9,7 @@ let
     l = "eza -laG -F=always --icons=always";
     v = "nvim";
     z = "zoxide";
+    g = "git";
   };
 in {
   programs = {
