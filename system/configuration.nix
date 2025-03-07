@@ -69,7 +69,11 @@
     git
     linuxKernel.packages.linux_6_6.v4l2loopback
     bash
+    greetd.tuigreet
   ];
+
+  nixpkgs.config.allowUnfree = true;
+  programs.steam.enable = true;
 
   services.displayManager.ly = {
     enable = true;
