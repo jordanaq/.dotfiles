@@ -29,6 +29,14 @@ in {
     recursive = true;
   };
 
+  xdg.configFile."wayland-sessions/hyprland.desktop".text = ''
+    [Desktop Entry]
+    Name=Hyprland
+    Comment=Wayland Compositor UwU
+    Exec=Hyprland
+    Type=Application
+  '';
+
   #home.hardware = {
   #  opengl.enable = true;
   #};
@@ -43,8 +51,12 @@ in {
       ];
 
       env = [
-        
+         
       ];
+
+      "cursor" = {
+        "no_hardware_cursors" = "true";
+      };
 
       # Appearance
       "general" = {
@@ -66,14 +78,14 @@ in {
       "decoration" = {
         # Window Decorations
         "rounding" = "5";
-        "drop_shadow" = "true";
-        "shadow_range" = "50";
-        "shadow_offset" = "-2.0 2.0";
-        "shadow_render_power" = "5";
+        # "drop_shadow" = "true";
+        # "shadow_range" = "50";
+        # "shadow_offset" = "-2.0 2.0";
+        # "shadow_render_power" = "5";
         
         # Blur
         "blur" = {
-          "enabled" = "true";
+          "enabled" = "false";
           "size" = "8";
           "passes" = "1";
           "ignore_opacity" = "true";
@@ -109,7 +121,7 @@ in {
         "repeat_delay" = "600";
         "sensitivity" = "0.0";
         "accel_profile" = "flat";
-        "force_no_accel" = "false";
+        # "force_no_accel" = "false";
         "scroll_factor" = "1.0";
         "natural_scroll" = "false";
         "follow_mouse" = "2";
@@ -144,7 +156,8 @@ in {
       };
 
       "monitor" = [
-        "DP-2, highrr, 0x0, 1"
+        "DP-1, highrr, auto-left, 1, transform, 3"
+        "DP-2, 2560x1440@144, auto-right, 1"
         ", highrr, auto, 1"
       ];
 
@@ -168,7 +181,7 @@ in {
         "$mod, Left, movefocus, l"
         "$mod, Right, movefocus, r"
         "$mod, F11, fullscreen, 1"
-        "$mod, F12, fakefullscreen, "
+        # "$mod, F12, fakefullscreen, "
         "$mod, P, pseudo, "
         "$mod, V, togglefloating, "
 
