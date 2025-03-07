@@ -1,20 +1,18 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 let
-  zenBrowser = pkgs.stdenv.mkDerivation rec {
-    pname = "zen-browser";
-    version = "latest";
+  pname = "zen-browser";
+  version = "twilight";
+  src = pkgs.fetchurl {
+    url = "https://github.com/zen-browser/desktop/releases/download/${version}/zen-x86_64.AppImage";
+    sha256 = "sha256-03H7mYhBt7PrtCm6xiDmfBCLZ3ZCxEJKw+U6lolM/Fg=";
+  };
 
-    src = pkgs.fetchFromGitHub {
-      owner = "zen-browser";
-      repo = "desktop";
-      rev = "1.8.2b";
-      sha256 = "";
-    };
+  zenBrowser = pkgs.appimageTools.wrapType2 rec {
+    inherit pname version src;
   };
 in {
-  programs.zen-browser = {
-    enable = true;
-    package = zenBrowser;
-  }
+  home.packages = [
+    zenBrowser
+  ];
 }

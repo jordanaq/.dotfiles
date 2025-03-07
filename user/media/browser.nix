@@ -3,5 +3,6 @@
 {
   imports = [
     ./firefox
+    ./zen-browser
   ];
 }
