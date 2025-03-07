@@ -1,5 +1,36 @@
 { config, pkgs, ... }:
 let
+  gpuBtop = pkgs.stdenv.mkDerivation rec {
+    pname = "btop";
+    version = "latest";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "aristocratos";
+      repo = "btop";
+      rev = "main";
+      sha256 = "sha256-t3x8BwMIctgKCzVvLkq+gQiXMhrO5kjBAZuDDr5iZ54=";
+    };
+
+    nativeBuildInputs = with pkgs; [
+      cmake
+      gnumake
+      gcc
+      rocmPackages.rocm-smi
+    ];
+
+    env = {
+      GPU_SUPPORT = "true";
+    };
+
+    shellHool = ''
+        export ROCM_SMI_LIB_PATH="${pkgs.rocmPackages.rocm-smi}/lib"
+      '';
+
+    installPhase = ''
+      mkdir -p $out/bin
+      cp btop $out/bin/
+    '';
+  };
   btop-theme = "catppuccin_macchiato";
 in {
   home.file.btop-themes = {
@@ -8,8 +39,13 @@ in {
     recursive = true;
   };
 
+  home.packages = [
+    pkgs.rocmPackages.rocm-smi
+  ];
+
   programs.btop = {
     enable = true;
+    package = gpuBtop;
     extraConfig = ''
       #? Config file for btop v. 1.2.9
       
