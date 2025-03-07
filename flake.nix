@@ -20,50 +20,50 @@
       lib = nixpkgs.lib;
       system = "x86_64-linux";
       hyprland = import hyprland;
-      pkgs = import nixpkgs {
+    pkgs = import nixpkgs {
+      inherit system;
+      config = {
+        allowUnfree = true;
+      };
+    };
+    pkgs-unstable = inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  in {
+    nixosConfigurations = {
+      tsiru-nixos = lib.nixosSystem {
         inherit system;
-        config = {
-          allowUnfree = true;
-        };
-      };
-      pkgs-unstable = inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-    in {
-      nixosConfigurations = {
-        tsiru-nixos = lib.nixosSystem {
-          inherit system;
 
-          modules = [
-            ./system/configuration.nix
-            ./system/audio/default.nix
-          ];
-        };
-      };
-
-      homeConfigurations = {
-        tsiru = home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-
-          modules = [
-            ./user/home.nix
-            catppuccin.homeManagerModules.catppuccin
-          ];
-
-          extraSpecialArgs = {
-            inherit inputs;
-          };
-        };
-      };
-
-      hardware.opengl = {
-        package = pkgs-unstable.mesa.drivers;
-        driSupport32Bit = true;
-        package32 = pkgs-unstable.pkgsi686Linux.mesa.drivers;
-        extraPackages = with pkgs; [
-          amdvlk
-        ];
-        extraPackages32 = with pkgs; [
-          driversi686Linux.amdvlk
+        modules = [
+          ./system/configuration.nix
+          ./system/audio/default.nix
         ];
       };
+    };
+
+    homeConfigurations = {
+      tsiru = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+
+        modules = [
+          ./user/home.nix
+          catppuccin.homeManagerModules.catppuccin
+        ];
+
+        extraSpecialArgs = {
+          inherit inputs;
+        };
+      };
+    };
+
+    hardware.opengl = {
+      package = pkgs-unstable.mesa.drivers;
+      driSupport32Bit = true;
+      package32 = pkgs-unstable.pkgsi686Linux.mesa.drivers;
+      extraPackages = with pkgs; [
+        amdvlk
+      ];
+      extraPackages32 = with pkgs; [
+        driversi686Linux.amdvlk
+      ];
+    };
   };
 }

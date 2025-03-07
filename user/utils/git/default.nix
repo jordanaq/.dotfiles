@@ -7,6 +7,7 @@
     userEmail = "quinn.jordan@proton.me";
     aliases = {
       a = "add";
+      ca = "commit -a";
       cam = "commit -am";
       ch = "checkout";
       co = "commit";
