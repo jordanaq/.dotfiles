@@ -2,9 +2,9 @@
 
 {
   home.packages = with pkgs; [
-   killall
-   htop
-   maliit-keyboard
-   maliit-framework
+    killall
+    htop
+    maliit-keyboard
+    maliit-framework
   ];
 }
