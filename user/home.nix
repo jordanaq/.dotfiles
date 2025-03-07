@@ -4,16 +4,12 @@
 
 {
   imports = [
-    ./sh
-
+    ./drivers
     ./gui
-
     ./media
-
     ./programming
-
+    ./sh
     ./styling
-
     ./utils
   ];
 
