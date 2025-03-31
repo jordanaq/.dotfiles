@@ -6,5 +6,6 @@
     ./camera.nix
     ./chat.nix
     ./games
+    ./misc.nix
   ];
 }
