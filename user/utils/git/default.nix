@@ -4,7 +4,7 @@
   programs.git = {
     enable = true;
     userName = "jordanaq";
-    userEmail = "quinn.jordan@proton.me";
+    userEmail = "quinn.jordan@protonmail.ch";
     aliases = {
       a = "add";
       ca = "commit -a";
@@ -16,6 +16,7 @@
       d = "diff";
       pl = "pull";
       ps = "push";
+      ro = "restore";
       s = "status";
       st = "status";
     };
