@@ -3,7 +3,7 @@
 {
   home.packages = with pkgs; [
     flatpak
-    gnome.gnome-software
+    gnome-software
   ];
 }
     
