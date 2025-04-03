@@ -20,6 +20,14 @@
       "v4l2loopback"
       "v4l2loopback-dc"
     ];
+
+    extraModulePackages = with pkgs; [
+      linuxPackages.v4l2loopback
+    ];
+
+    extraModprobeConfig = ''
+      options v4l2loopback devices=1 exclusive_caps=1
+    '';
   };
 
   # Networking
@@ -47,7 +55,7 @@
   };
 
   # Time zone
-  time.timeZone = "America/Los_Angeles";
+  time.timeZone = "America/New_York";
 
 
   # User
@@ -74,6 +82,13 @@
 
   nixpkgs.config.allowUnfree = true;
   programs.steam.enable = true;
+  xdg.portal = {
+    enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+      kdePackages.xdg-desktop-portal-kde
+    ];
+  };
 
   services.displayManager.ly = {
     enable = true;
@@ -97,6 +112,17 @@
   hardware.bluetooth.enable = true;
 
   hardware.opengl.enable = true;
+
+  fileSystems."/mnt" = {
+    device = "/dev/disk/by-uuid/16615F903483D493";
+    fsType = "ntfs";
+    options = [
+      "users"
+      "nofail"
+      "x-gvfs-show"
+      "rw"
+    ];
+  };
 
   # Experimental features
   nix.settings.experimental-features = [
