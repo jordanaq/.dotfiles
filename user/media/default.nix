@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ./browser.nix
+    ./browser
     ./camera.nix
     ./chat.nix
     ./games

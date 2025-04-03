@@ -3,8 +3,10 @@
 {
   home.packages = with pkgs; [
     discord
-    revolt-desktop
-    telegram-desktop
     premid
+    revolt-desktop
+    slack
+    telegram-desktop
+    zoom-us
   ];
 }
