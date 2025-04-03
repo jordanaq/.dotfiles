@@ -1,8 +1,12 @@
 { config, pkgs, ... }:
 
 {
-  home.packages = with pkgs.python312Packages; [
-    python
-    scipy
+  home.packages = with pkgs; [
+    black
+    (python313.withPackages (ps: with ps; [
+      scipy
+      numpy
+      pandas
+    ]))
   ];
 }
