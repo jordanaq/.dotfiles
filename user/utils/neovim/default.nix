@@ -14,34 +14,73 @@
     vimAlias = true;
     vimdiffAlias = true;
 
-	extraPackages = with pkgs; [
-	  # Language servers
-	  lua-language-server
-	  nil
-	];
+	  extraPackages = with pkgs; [
+	    # Language servers
+	    lua-language-server
+	    nil
+	  ];
 
     plugins = with pkgs.vimPlugins; [
-      lazy-nvim
-      vim-nix
-      neodev-nvim
+      {
+        plugin = bufferline-nvim;
+        config = toLua "require('bufferline').setup{}";
+      }
 
-      neo-tree-nvim
-      oil-nvim
       {
         plugin = catppuccin-nvim;
         config = "colorscheme catppuccin-macchiato";
       }
+
+      cmp_luasnip
+      cmp-nvim-lsp
+
+      {
+        plugin = comment-nvim;
+	      config = toLua "require(\"Comment\").setup()";
+      }
+
+
+
+      lazy-nvim
       lazy-lsp-nvim
+
       lsp-zero-nvim
+
+      luasnip
+      lualine-nvim
 
       {
         plugin = nvim-lspconfig;
         config = toLuaFile ./assets/nvim/plugin/lsp.lua;
       }
 
+      neodev-nvim
+
       {
-        plugin = comment-nvim;
-	      config = toLua "require(\"Comment\").setup()";
+        plugin = neo-tree-nvim;
+        config = toLua "vim.keymap.set('n', '<Leader>e', '<Cmd>Neotree toggle<CR>', { noremap = true, silent = true })";
+      }
+
+      {
+        plugin = noice-nvim;
+        config = toLua ''
+          require("noice").setup({
+            lsp = {
+              override = {
+                ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+                ["vim.lsp.util.stylize_markdown"] = true,
+                ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+              },
+            },
+            presets = {
+              bottom_search = true, -- use a classic bottom cmdline for search
+              command_palette = true, -- position the cmdline and popupmenu together
+              long_message_to_split = true, -- long messages will be sent to a split
+              inc_rename = false, -- enables an input dialog for inc-rename.nvim
+              lsp_doc_border = false, -- add a border to hover docs and signature help
+            },
+          })
+        '';
       }
 
       nvim-cmp 
@@ -49,19 +88,16 @@
         plugin = nvim-cmp;
         config = toLuaFile ./assets/nvim/plugin/cmp.lua;
       }
-      cmp_luasnip
-      cmp-nvim-lsp
 
+      nvim-web-devicons
+
+      persistence-nvim
+
+      telescope-fzf-native-nvim
       {
         plugin = telescope-nvim;
         config = toLuaFile ./assets/nvim/plugin/telescope.lua;
       }
-      telescope-fzf-native-nvim
-
-      luasnip
-
-      lualine-nvim
-      nvim-web-devicons
 
       {
         plugin = (nvim-treesitter.withPlugins (p: [
@@ -74,6 +110,15 @@
         ]));
         config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
       }
+
+      {
+        plugin = vim-highlightedyank;
+        config = toLua "vim.g.highlightedyank_highlight_duration = 300";
+      }
+
+      vim-nix
+
+      which-key-nvim
     ];
 
     extraLuaConfig = ''
@@ -81,6 +126,9 @@
       vim.g.mapleader = ' '
       vim.g.maplocalleader = ' '
       
+      vim.keymap.set('n', '<Space>', '<Nop>', { noremap = true, silent = true })
+      vim.keymap.set('v', '<Space>', '<Nop>', { noremap = true, silent = true })
+
       vim.o.clipboard = 'unnamedplus'
       
       vim.o.number = true
