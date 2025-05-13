@@ -6,5 +6,7 @@
     htop
     maliit-keyboard
     maliit-framework
+    xclip
+    xorg.xkill
   ];
 }
