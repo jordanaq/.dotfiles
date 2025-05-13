@@ -10,6 +10,8 @@
     ./kitty
     ./misc
     ./neovim
+    ./pandoc
+    ./texlive
     ./thunar
     ./zoxide
   ];
