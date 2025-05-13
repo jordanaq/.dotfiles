@@ -7,5 +7,6 @@
     ./chat.nix
     ./games
     ./misc.nix
+    ./study-tools.nix
   ];
 }
