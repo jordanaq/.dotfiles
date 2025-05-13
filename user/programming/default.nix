@@ -3,5 +3,7 @@
 {
   imports = [
     ./languages
+    ./utils
+    ./vscode
   ];
 }
