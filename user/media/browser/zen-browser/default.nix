@@ -11,7 +11,7 @@ let
   # zenBrowser = pkgs.appimageTools.wrapType2 rec {
   #   inherit pname version src;
   # };
-  zenBrowser = inputs.zen-browser.packages."${pkgs.system}".default;
+  zenBrowser = inputs.zen-browser.packages."${pkgs.system}".specific;
 in {
   home.packages = [
     zenBrowser
