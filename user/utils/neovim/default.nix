@@ -118,7 +118,13 @@
 
       vim-nix
 
-      vimtex
+      {
+        plugin = vimtex;
+        type = "lua";
+        config = ''
+          vim.g.vimtex_view_method = "zathura"
+        '';
+      }
 
       which-key-nvim
     ];
