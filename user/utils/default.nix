@@ -13,6 +13,7 @@
     ./pandoc
     ./texlive
     ./thunar
+    ./zip
     ./zoxide
   ];
 }
