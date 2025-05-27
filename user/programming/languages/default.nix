@@ -6,5 +6,6 @@
     ./haskell.nix
     ./python.nix
     ./rust.nix
+    ./sml.nix
   ];
 }
