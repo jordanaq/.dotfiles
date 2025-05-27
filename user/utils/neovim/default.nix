@@ -118,6 +118,8 @@
 
       vim-nix
 
+      vimtex
+
       which-key-nvim
     ];
 
