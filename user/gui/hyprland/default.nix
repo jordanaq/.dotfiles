@@ -33,18 +33,19 @@
 
     # fonts
     icomoon-feather
-    nerd-fonts.symbols-only
     jetbrains-mono
-    nerd-fonts.jetbrains-mono
-    nerd-fonts.iosevka
-  ];
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-emoji
+    noto-fonts-extra
+    font-awesome
+    material-design-icons
+  ] ++ builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
 
-  home.file.".config/hypr" = {
-    source = ./hypr;
-    recursive = true;
-  };
+  fonts.fontconfig.enable = true;
 
-  home.file.".local/share/fonts/Archcraft.ttf".source = ./fonts/Archcraft.ttf;
+  xdg.configFile."hypr".source = ./hypr;
+  xdg.configFile.".local/share/fonts/Archcraft.ttf".source = ./hypr/fonts/Archcraft.ttf;
 
   wayland.windowManager.hyprland = {
     enable = true;
