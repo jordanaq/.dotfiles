@@ -3,17 +3,25 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
+
     home-manager = {
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     catppuccin.url = "github:catppuccin/nix";
+
     firefox-addons = {
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     hyprland.url = "github:hyprwm/Hyprland";
+    hyprland-plugins = {
+      url = "github:/hyprwm/hyprland-plugins";
+      inputs.hyprland.follows = "hyprland";
+    };
+
     zen-browser = {
       url = "github:omarcresp/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
