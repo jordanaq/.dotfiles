@@ -1,7 +1,7 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
-  programs.wayfire = {
+  wayland.windowManager.wayfire = {
     enable = true;
     plugins = with pkgs.wayfirePlugins; [
       wcm
