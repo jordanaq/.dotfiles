@@ -1,3 +1,6 @@
 [submodule "user/gui/hyprland/hypr"]
 	path = user/gui/hyprland/hypr
 	url = git@github.com:jordanaq/hyprland-private.git
+[submodule "assets/images"]
+	path = assets/images
+	url = git@github.com:jordanaq/images.git
