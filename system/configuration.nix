@@ -72,12 +72,14 @@
 
   # System-wide packages
   environment.systemPackages = with pkgs; [
-    vim
-    wget
+    bash
+    catppuccin-sddm-corners
     git
     linuxKernel.packages.linux_6_6.v4l2loopback
-    bash
-    greetd.tuigreet
+    vim
+    wget
+    xorg.xinit
+    xorg.xrandr
   ];
 
   nixpkgs.config.allowUnfree = true;
@@ -90,19 +92,35 @@
     ];
   };
 
-  services.displayManager.ly = {
+  services.xserver = {
     enable = true;
+    desktopManager.xfce.enable = true;
+
+    xkb = {
+      layout = "us";
+      variant = "";
+    };
+
+    displayManager.setupCommands = ''
+      ${pkgs.xorg.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 1440x868 --refresh 144
+      ${pkgs.xorg.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 0x0 --rotation right --refresh 120
+    '';
   };
 
-  services.xserver.enable = true;
-  services.xserver.desktopManager.xfce.enable = true;
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
+  services.displayManager = {
+    sddm = {
+      enable = true;
+      theme = "catppuccin-sddm-corners";
+    };
+  };
+
+  programs.hyprland = {
+    enable = true;
+    xwayland.enable = true;  # Optional: Enable XWayland support
   };
 
   # services.xserver.libinput.enable = true;
-  hardware.pulseaudio = {
+  services.pulseaudio = {
     enable = true;
     extraConfig = ''
       set-default-sink alsa_output.usb-GuangZhou_FiiO_Electronics_Co._Ltd_FiiO_Q3_FA300243-00.analog-stereo
@@ -111,7 +129,7 @@
 
   hardware.bluetooth.enable = true;
 
-  hardware.opengl.enable = true;
+  hardware.graphics.enable = true;
 
   fileSystems."/mnt" = {
     device = "/dev/disk/by-uuid/16615F903483D493";
