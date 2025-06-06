@@ -38,7 +38,7 @@ nix-shell -p home-manager
 Then,
 
 ```bash
-home-manager switch --flake ~/.dotfiles/ -b backup
+home-manager switch --flake ~/.dotfiles?submodules=1 -b backup
 ```
 
 ## Note
