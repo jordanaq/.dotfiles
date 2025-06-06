@@ -30,4 +30,6 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  home.file.".face".source = ../assets/images/furry/avatar/selver_upscaled.jpg;
 }
