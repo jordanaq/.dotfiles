@@ -14,11 +14,17 @@
     vimAlias = true;
     vimdiffAlias = true;
 
-	  extraPackages = with pkgs; [
-	    # Language servers
-	    lua-language-server
-	    nil
-	  ];
+    extraPackages = with pkgs; [
+      # Language servers
+      harper
+      haskell-language-server
+      ltex-ls-plus
+      lua-language-server
+      nil
+      pyright
+      typescript-language-server
+      vale-ls
+    ];
 
     plugins = with pkgs.vimPlugins; [
       {
@@ -42,17 +48,25 @@
 
 
       lazy-nvim
-      lazy-lsp-nvim
+      {
+        plugin = lazy-lsp-nvim;
+        config = toLua ''
+          require("lazy-lsp").setup {
+            prefer_local = true
+          }
+        '';
+      }
+      {
+        plugin = lsp-zero-nvim;
+        config = toLuaFile ./assets/nvim/plugin/lsp.lua;
+      }
 
-      lsp-zero-nvim
+      ltex_extra-nvim
 
       luasnip
       lualine-nvim
 
-      {
-        plugin = nvim-lspconfig;
-        config = toLuaFile ./assets/nvim/plugin/lsp.lua;
-      }
+      nvim-lspconfig
 
       neodev-nvim
 
@@ -100,14 +114,15 @@
       }
 
       {
-        plugin = (nvim-treesitter.withPlugins (p: [
-          p.tree-sitter-nix
-          p.tree-sitter-vim
-          p.tree-sitter-bash
-          p.tree-sitter-lua
-          p.tree-sitter-python
-          p.tree-sitter-json
-        ]));
+        plugin = nvim-treesitter.withAllGrammars;
+          #(nvim-treesitter.withPlugins (p: [
+          #  p.tree-sitter-nix
+          #  p.tree-sitter-vim
+          #  p.tree-sitter-bash
+          #  p.tree-sitter-lua
+          #  p.tree-sitter-python
+          #  p.tree-sitter-json
+          #]));
         config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
       }
 

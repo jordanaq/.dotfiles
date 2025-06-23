@@ -26,38 +26,93 @@
 --local capabilities = vim.lsp.protocol.make_client_capabilities()
 --capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 
-config = function()
-  local lsp_zero = require("lsp-zero")
-  lsp_zero.on_attach(function(client, bufnr)
-    lsp_zero.default_keymaps({
-      buffer = bufnr,
-      preserve_mappings = false
-    });
-  end)
+local lsp_zero = require("lsp-zero")
+lsp_zero.preset('recommended')
 
-  require("lazy-lsp").setup {
-    prefer_local = true
-  }
+lsp_zero.extend_lspconfig("harper_ls", {
+  settings = {
+    harper_ls = {
+      userDictPath = "~/dict.txt",
+      filetypes = {
+        "c",
+        "cpp",
+        "cs",
+        "gitcommit",
+        "go",
+        "html",
+        "java",
+        "javascript",
+        "lua",
+        "markdown",
+        "nix",
+        "python",
+        "ruby",
+        "rust",
+        "swift",
+        "tex",
+        "toml",
+        "typescript",
+        "typescriptreact",
+        "haskell",
+        "cmake",
+        "typst",
+        "php",
+        "dart"
+      }
+    }
+  },
+})
 
-  --require('neodev').setup()
-  --require('lspconfig').lua_ls.setup {
-  --  on_attach = on_attach,
-  --  capabilities = capabilities,
-  --    root_dir = function()
-  --      return vim.loop.cwd()
-  --  end,
-  --    cmd = { "lua-language-server" },
-  --  settings = {
-  --      Lua = {
-  --          workspace = { checkThirdParty = false },
-  --          telemetry = { enable = false },
-  --      },
-  --  }
-  --}
-  --
-  --require('lspconfig').nil.setup {
-  --    on_attach = on_attach,
-  --    capabilities = capabilities,
-  --    cmd = { "nil" },
-  --}
-end
+lsp_zero.extend_lspconfig("ltex-plus", {
+  settings = {
+    ltex = {
+      checkFrequency = "save",
+      language = "en-US",
+    },
+  },
+})
+
+lsp_zero.setup_servers({
+  'lua_ls',
+  'ltex-plus',
+  'harper_ls',
+  'hls',
+  'pyright',
+  'tsserver',
+  'vale_ls',
+})
+
+lsp_zero.on_attach(function(client, bufnr)
+  lsp_zero.default_keymaps({ buffer = bufnr })
+
+  if client.name:match("ltex") then
+    require("ltex_extra").setup({
+      load_langs = { "en-US" },
+      path = ".ltex",
+    })
+  end
+end)
+
+lsp_zero.setup()
+
+--require('neodev').setup()
+--require('lspconfig').lua_ls.setup {
+--  on_attach = on_attach,
+--  capabilities = capabilities,
+--    root_dir = function()
+--      return vim.loop.cwd()
+--  end,
+--    cmd = { "lua-language-server" },
+--  settings = {
+--      Lua = {
+--          workspace = { checkThirdParty = false },
+--          telemetry = { enable = false },
+--      },
+--  }
+--}
+--
+--require('lspconfig').nil.setup {
+--    on_attach = on_attach,
+--    capabilities = capabilities,
+--    cmd = { "nil" },
+--}
