@@ -1,11 +1,14 @@
 { pkgs, ... }:
 
 {
-  pkgs = with pkgs [
-    bottles
-    lutris
+  home.packages = with pkgs; [
+    gamescope
     vulkan-tools
+    protontricks
     winetricks
-    wineWowPackages.stable
+    wineWowPackages.waylandFull
+    # wineWow64Packages.waylandFull
   ];
+
+  programs.lutris.enable = true;
 }
