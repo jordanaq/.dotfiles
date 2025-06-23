@@ -8,7 +8,7 @@ let
       owner = "aristocratos";
       repo = "btop";
       rev = "main";
-      sha256 = "sha256-t3x8BwMIctgKCzVvLkq+gQiXMhrO5kjBAZuDDr5iZ54=";
+      sha256 = "sha256-22j9iyj45apk7dcLxjLl/uq7ZRhiVcCgO2iC385tn1o=";
     };
 
     nativeBuildInputs = with pkgs; [
