@@ -86,7 +86,11 @@
   programs.steam.enable = true;
   xdg.portal = {
     enable = true;
+    wlr.enable = true;
+    config.common.default = "hyprland";
     extraPortals = with pkgs; [
+      xdg-desktop-portal-hyprland
+      xdg-desktop-portal-wlr
       xdg-desktop-portal-gtk
       kdePackages.xdg-desktop-portal-kde
     ];
@@ -129,7 +133,17 @@
 
   hardware.bluetooth.enable = true;
 
-  hardware.graphics.enable = true;
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+    extraPackages32 = with pkgs.pkgsi686Linux; [
+      gnutls
+      mesa
+      vulkan-loader
+    ];
+  };
+
+  hardware.amdgpu.amdvlk.enable = true;
 
   fileSystems."/mnt" = {
     device = "/dev/disk/by-uuid/16615F903483D493";
