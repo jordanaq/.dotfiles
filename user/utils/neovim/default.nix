@@ -20,6 +20,7 @@
       haskell-language-server
       ltex-ls-plus
       lua-language-server
+      millet
       nil
       pyright
       typescript-language-server
