@@ -35,11 +35,7 @@
     hostName = "tsiru-nixos";
     wireless = {
       enable = true;
-      networks = {
-        "ATT2dzN9ZY" = {
-          psk = "7grh9t4xgj7d";
-        };
-      };
+      networks = {};
     };
     nameservers = [
       "9.9.9.9"
