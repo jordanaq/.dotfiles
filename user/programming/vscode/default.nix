@@ -12,6 +12,8 @@
           # ms-python.vscode-pylance
 
           ms-toolsai.jupyter
+
+          ms-vsliveshare.vsliveshare
         ];
       };
     };
