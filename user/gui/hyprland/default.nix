@@ -1,6 +1,10 @@
-{ pkgs, ... }:
+{ pkgs, inputs, system, ... }:
 
-{
+
+let
+  # hyprland = inputs.hyprland;
+  hyprland-plugins = inputs.hyprland-plugins;
+in {
   home.packages = with pkgs; [
     swaybg
     swayidle
@@ -49,6 +53,12 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
+    # package = hyprland.packages.${system}.hyprland;
+
+    plugins = with hyprland-plugins.packages.${system}; [
+      csgo-vulkan-fix
+    ];
+
     extraConfig = ''
       # unused
     '';
