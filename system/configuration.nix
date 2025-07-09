@@ -2,7 +2,10 @@
 
 { config, lib, pkgs, ... }:
 
-{
+let
+  uname = "tsiru";
+  homedir = /home/${uname};
+in {
   imports =
     [
       ./hardware-configuration.nix
@@ -32,10 +35,14 @@
 
   # Networking
   networking = {
-    hostName = "tsiru-nixos";
+    hostName = "${uname}-nixos";
     wireless = {
       enable = true;
-      networks = {};
+      networks = {
+        "apartment-wifi" = {
+          pskRaw = "1c491d1b9c5f0f243fd31d186a27403af4f92872e805c46335dda3c543b6c60c";
+        };
+      };
     };
     nameservers = [
       "9.9.9.9"
@@ -46,7 +53,7 @@
   services.openssh = {
     enable = true;
     settings = {
-      AllowUsers = [ "tsiru" ];
+      AllowUsers = [ uname ];
     };
   };
 
@@ -55,13 +62,14 @@
 
 
   # User
-  users.users.tsiru = {
+  users.users.${uname} = {
     isNormalUser = true;
     extraGroups = [
-      "wheel"
+      "render"
       "networkmanager"
-    ]; # Enable ‘sudo’ for the user.
-    packages = with pkgs; [ ];
+      "video"
+      "wheel"
+    ];
     shell = pkgs.fish;
     ignoreShellProgramCheck = true;
   };
@@ -78,7 +86,11 @@
     xorg.xrandr
   ];
 
-  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config = {
+    allowUnfree = true;
+    rocmTargets = [ "gfx1012" ];
+  };
+
   programs.steam.enable = true;
   xdg.portal = {
     enable = true;
@@ -139,7 +151,10 @@
     ];
   };
 
-  hardware.amdgpu.amdvlk.enable = true;
+  hardware.amdgpu = {
+    opencl.enable = true;
+    amdvlk.enable = true;
+  };
 
   fileSystems."/mnt" = {
     device = "/dev/disk/by-uuid/16615F903483D493";
