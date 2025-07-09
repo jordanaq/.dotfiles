@@ -1,0 +1,8 @@
+
+{ config, ... }:
+
+{
+  imports = [
+    ./rocm.nix
+  ];
+}

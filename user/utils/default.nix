@@ -6,6 +6,7 @@
     ./btop
     ./flatpak
     ./git
+    ./graphics
     ./keepass
     ./kitty
     ./misc
