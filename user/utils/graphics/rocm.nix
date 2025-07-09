@@ -2,9 +2,9 @@
 
 {
   home.packages = with pkgs.rocmPackages; [
-    clinfo
+    clr
     rocminfo
-    hipcc
+    # hipcc
     rocm-smi
   ];
 }
