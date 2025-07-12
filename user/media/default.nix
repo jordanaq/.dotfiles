@@ -2,11 +2,11 @@
 
 {
   imports = [
-    ./browser
-    ./camera.nix
-    ./chat.nix
-    ./games
+    # ./browser
+    # ./camera.nix
+    # ./chat.nix
+    # ./games
     ./misc.nix
-    ./study-tools.nix
+    # ./study-tools.nix
   ];
 }

@@ -6,8 +6,8 @@
   };
 
   home.packages = with pkgs; [
-    obs-studio
-    vlc
+    # obs-studio
+    # vlc
     zathura
   ];
 }

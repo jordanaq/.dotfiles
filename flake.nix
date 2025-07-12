@@ -11,35 +11,19 @@
 
     catppuccin.url = "github:catppuccin/nix";
 
-    firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprland.url = "github:hyprwm/Hyprland";
-    hyprland-plugins = {
-      url = "github:/hyprwm/hyprland-plugins";
-      inputs.hyprland.follows = "hyprland";
-    };
-
-    zen-browser = {
-      url = "github:omarcresp/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, nixos-wsl, ... }@inputs:
     let
       lib = nixpkgs.lib;
       system = "x86_64-linux";
-      hyprland = import hyprland;
       pkgs = import nixpkgs {
         inherit system;
         config = {
           allowUnfree = true;
         };
       };
-      pkgs-unstable = hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
     in {
       nixosConfigurations = {
         tsiru-nixos = lib.nixosSystem {
@@ -48,6 +32,13 @@
           modules = [
             ./system/configuration.nix
             ./system/audio/default.nix
+
+            nixos-wsl.nixosModules.default
+            {
+              system.stateVersion = "24.11";
+              wsl.enable = true;
+              wsl.defaultUser = "tsiru";
+            }
           ];
         };
       };
@@ -66,18 +57,6 @@
             inherit system;
           };
         };
-      };
-
-      hardware.opengl = {
-        package = pkgs-unstable.mesa.drivers;
-        driSupport32Bit = true;
-        package32 = pkgs-unstable.pkgsi686Linux.mesa.drivers;
-        extraPackages = with pkgs; [
-          amdvlk
-        ];
-        extraPackages32 = with pkgs; [
-          driversi686Linux.amdvlk
-        ];
       };
     };
 }

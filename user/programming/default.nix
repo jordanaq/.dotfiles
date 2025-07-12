@@ -4,6 +4,6 @@
   imports = [
     ./languages
     ./utils
-    ./vscode
+    # ./vscode
   ];
 }

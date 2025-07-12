@@ -4,19 +4,19 @@
 
 {
   imports = [
-    ./drivers
-    ./gui
+    # ./drivers
+    # ./gui
     ./media
     ./programming
     ./sh
-    ./styling
+    # ./styling
     ./utils
   ];
 
   home = {
     username = "tsiru";
     homeDirectory = "/home/tsiru";
-    stateVersion = "25.05"; # Read home manager release notes before changing.
+    stateVersion = "24.11"; # Read home manager release notes before changing.
 
     # Packages
     packages = with pkgs; [

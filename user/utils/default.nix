@@ -3,10 +3,10 @@
 {
   imports = [
     ./bat
-    ./btop
+    # ./btop
     ./flatpak
     ./git
-    ./graphics
+    # ./graphics
     ./keepass
     ./kitty
     ./misc
