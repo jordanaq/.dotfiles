@@ -1,6 +1,8 @@
-# NixOS Configuration
+# NixOS WSL Configuration
 
 ## Installation
+
+Install the NixOS WSL container. See the [wiki](https://wiki.nixos.org/wiki/WSL) for directions.
 
 Make sure flakes are enabled on your system. If not, add the following to your system's `configuration.nix`.
 
@@ -14,7 +16,7 @@ nix.settings.experimental-features = [
 Then, simply clone this repo into your home directory.
 
 ```bash
-git clone git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
+git clone -b wsl git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
 ```
 
 ## Usage
