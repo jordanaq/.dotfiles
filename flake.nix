@@ -37,6 +37,7 @@
         inherit system;
         config = {
           allowUnfree = true;
+          rocmSupport = true;
         };
       };
       pkgs-unstable = hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
