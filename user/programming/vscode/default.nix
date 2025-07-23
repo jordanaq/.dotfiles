@@ -13,6 +13,8 @@
 
           ms-toolsai.jupyter
 
+          tomoki1207.pdf
+
           ms-vsliveshare.vsliveshare
         ];
       };
