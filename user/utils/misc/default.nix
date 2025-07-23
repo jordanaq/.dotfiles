@@ -2,8 +2,9 @@
 
 {
   home.packages = with pkgs; [
-    killall
+    graphviz
     htop
+    killall
     maliit-keyboard
     maliit-framework
     xclip
