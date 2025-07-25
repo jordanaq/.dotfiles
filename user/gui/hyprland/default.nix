@@ -15,6 +15,7 @@ in {
     wofi
     foot
     mako
+    jq
     grim
     slurp
     wf-recorder
