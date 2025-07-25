@@ -6,6 +6,8 @@
     profiles = {
       default = {
         extensions = with pkgs.vscode-extensions; [
+          bbenoist.nix
+
           catppuccin.catppuccin-vsc
           catppuccin.catppuccin-vsc-icons
 
