@@ -28,7 +28,10 @@ in {
     viewnior
     imagemagick
     polkit
-    xdg-desktop-portal-wlr
+    xdg-desktop-portal
+    xdg-desktop-portal-gtk
+    xdg-desktop-portal-hyprland
+    kdePackages.qtwayland
     playerctl
     pastel
     pywal
@@ -67,10 +70,14 @@ in {
 
   xdg.portal = {
     enable = true;
-    config.common.default = "hyprland";
+    config.common = {
+      default = [ "hyprland" ];
+      "org.freedesktop.impl.portal.ScreenCast" = [ "hyprland" ];
+    };
     extraPortals = with pkgs; [
       xdg-desktop-portal-hyprland
-      xdg-desktop-portal-wlr
+      xdg-desktop-portal
+      xdg-desktop-portal-gtk
     ];
   };
 }
