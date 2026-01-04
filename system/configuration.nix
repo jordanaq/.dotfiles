@@ -60,18 +60,26 @@ in {
   # Time zone
   time.timeZone = "America/New_York";
 
-
   # User
-  users.users.${uname} = {
-    isNormalUser = true;
-    extraGroups = [
-      "render"
-      "networkmanager"
-      "video"
-      "wheel"
-    ];
-    shell = pkgs.fish;
-    ignoreShellProgramCheck = true;
+  users = {
+    extraGroups = {
+      docker.members = [];
+      libvirt.members = [];
+    };
+
+    users.${uname} = {
+      isNormalUser = true;
+      extraGroups = [
+        "docker"
+        "libvirt"
+        "networkmanager"
+        "render"
+        "video"
+        "wheel"
+      ];
+      shell = pkgs.fish;
+      ignoreShellProgramCheck = true;
+    };
   };
 
   # System-wide packages
@@ -96,12 +104,20 @@ in {
     enable = true;
     wlr.enable = true;
     config.common.default = "hyprland";
+    xdgOpenUsePortal = true;
     extraPortals = with pkgs; [
       xdg-desktop-portal-hyprland
       xdg-desktop-portal-wlr
       xdg-desktop-portal-gtk
       kdePackages.xdg-desktop-portal-kde
     ];
+  };
+
+  services.hardware.openrgb = { 
+    enable = true; 
+    package = pkgs.openrgb-with-all-plugins; 
+    motherboard = "amd"; 
+    server.port = 6742; 
   };
 
   services.xserver = {
@@ -131,13 +147,16 @@ in {
     xwayland.enable = true;  # Optional: Enable XWayland support
   };
 
-  # services.xserver.libinput.enable = true;
-  services.pulseaudio = {
+  security.rtkit.enable = true;
+  services.pipewire = {
     enable = true;
-    extraConfig = ''
-      set-default-sink alsa_output.usb-GuangZhou_FiiO_Electronics_Co._Ltd_FiiO_Q3_FA300243-00.analog-stereo
-    '';
+    pulse.enable = true;
+    wireplumber.enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
   };
+
+  services.seatd.enable = true;
 
   hardware.bluetooth.enable = true;
 
@@ -165,6 +184,14 @@ in {
       "x-gvfs-show"
       "rw"
     ];
+  };
+
+  virtualisation = {
+    libvirt.enable = true;
+    docker.rootless = {
+      enable = true;
+      setSocketVariable = true;
+    };
   };
 
   # Experimental features
