@@ -169,6 +169,10 @@
       vim.o.termguicolors = true
       
       vim.o.mouse = 'a'
+
+      vim.filetype.add({
+        extension = { sml = "sml", sig = "sml", fun = "sml" },
+      })
     '';
   };
 }
