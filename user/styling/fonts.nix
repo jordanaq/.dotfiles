@@ -11,6 +11,7 @@
     hack-font
     opensans
     fontawesome
+    nerd-fonts.symbols-only
   ];
 
   fonts.fontconfig = {
