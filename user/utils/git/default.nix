@@ -3,8 +3,12 @@
 {
   programs.git = {
     enable = true;
+
+    lfs.enable = true;
+
     userName = "jordanaq";
     userEmail = "quinn.jordan@protonmail.ch";
+
     aliases = {
       a = "add";
       ca = "commit -a";
@@ -18,6 +22,7 @@
       ps = "push";
       ro = "restore";
       s = "status";
+      smu = "submodule update --init --recursive";
       st = "status";
     };
   };
