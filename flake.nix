@@ -22,13 +22,18 @@
       inputs.hyprland.follows = "hyprland";
     };
 
+    nixvirt = {
+      url = "https://flakehub.com/f/AshleyYakeley/NixVirt/*.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zen-browser = {
       url = "github:omarcresp/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, nixvirt, ... }@inputs:
     let
       lib = nixpkgs.lib;
       system = "x86_64-linux";
@@ -49,6 +54,7 @@
           modules = [
             ./system/configuration.nix
             ./system/audio/default.nix
+            (nixvirt.nixosModules.default)
           ];
         };
       };
@@ -60,6 +66,7 @@
           modules = [
             ./user/home.nix
             catppuccin.homeManagerModules.catppuccin
+            (nixvirt.homeModules.default)
           ];
 
           extraSpecialArgs = {
