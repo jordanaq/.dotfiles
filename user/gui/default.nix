@@ -3,6 +3,6 @@
 {
   imports = [
     ./hyprland
-    ./wayfire
+    # ./wayfire
   ];
 }
