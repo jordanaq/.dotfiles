@@ -58,6 +58,8 @@ in {
     enable = true;
     # package = hyprland.packages.${system}.hyprland;
 
+    configType = "hyprlang";
+
     plugins = with hyprland-plugins.packages.${system}; [
       csgo-vulkan-fix
     ];

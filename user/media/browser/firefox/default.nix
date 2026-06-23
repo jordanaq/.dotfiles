@@ -6,7 +6,7 @@
     configPath = "${config.xdg.configHome}/mozilla/firefox";
     profiles.tsiru = {
       search.engines = {
-        "DuckDuckGo" = {
+        "ddg" = {
           urls = [{
             template = "https://duckduckgo.com/";
             params = [
