@@ -19,7 +19,7 @@ in {
     grim
     slurp
     wf-recorder
-    light
+    # light
     yad
     geany
     mpv
@@ -44,8 +44,7 @@ in {
     jetbrains-mono
     noto-fonts
     noto-fonts-cjk-sans
-    noto-fonts-emoji
-    noto-fonts-extra
+    noto-fonts-color-emoji
     font-awesome
     material-design-icons
   ] ++ builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
