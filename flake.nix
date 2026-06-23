@@ -28,8 +28,9 @@
     };
 
     zen-browser = {
-      url = "github:omarcresp/zen-browser-flake";
+      url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
     };
   };
 
@@ -51,10 +52,17 @@
         tsiru-nixos = lib.nixosSystem {
           inherit system;
 
+          specialArgs = { inherit inputs; };
+
           modules = [
             ./system/configuration.nix
             ./system/audio/default.nix
             (nixvirt.nixosModules.default)
+
+            home-manager.nixosModules.home-manager {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+            }
           ];
         };
       };
