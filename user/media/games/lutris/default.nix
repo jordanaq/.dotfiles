@@ -6,7 +6,7 @@
     vulkan-tools
     protontricks
     winetricks
-    wineWowPackages.waylandFull
+    wineWow64Packages.waylandFull
     # wineWow64Packages.waylandFull
   ];
 
