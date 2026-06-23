@@ -90,8 +90,10 @@ in {
     linuxKernel.packages.linux_6_6.v4l2loopback
     vim
     wget
-    xorg.xinit
-    xorg.xrandr
+    xinit
+    xrandr
+    libsForQt5.qt5.qtbase
+    libsForQt5.qt5.qtgraphicaleffects
   ];
 
   nixpkgs.config = {
@@ -130,8 +132,8 @@ in {
     };
 
     displayManager.setupCommands = ''
-      ${pkgs.xorg.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 1440x868 --refresh 144
-      ${pkgs.xorg.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 0x0 --rotation right --refresh 120
+      ${pkgs.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 1440x868 --refresh 144
+      ${pkgs.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 0x0 --rotation right --refresh 120
     '';
   };
 
@@ -172,7 +174,6 @@ in {
 
   hardware.amdgpu = {
     opencl.enable = true;
-    amdvlk.enable = true;
   };
 
   fileSystems."/mnt" = {
