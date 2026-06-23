@@ -2,8 +2,10 @@
 
 {
   programs.neovim = let
-    toLua = str: "lua << EOF\n${str}\nEOF\n";
-    toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
+    toLua = str: "\n${str}\n";
+    toLuaFile = file: "\n${builtins.readFile file}\n";
+    # toLua = str: "lua << EOF\n${str}\nEOF\n";
+    # toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
   in {
     enable = true;
 
@@ -30,11 +32,13 @@
     plugins = with pkgs.vimPlugins; [
       {
         plugin = bufferline-nvim;
+        type = "lua";
         config = toLua "require('bufferline').setup{}";
       }
 
       {
         plugin = catppuccin-nvim;
+        type = "viml";
         config = "colorscheme catppuccin-macchiato";
       }
 
@@ -43,6 +47,7 @@
 
       {
         plugin = comment-nvim;
+        type = "lua";
 	      config = toLua "require(\"Comment\").setup()";
       }
 
@@ -51,14 +56,17 @@
       lazy-nvim
       {
         plugin = lazy-lsp-nvim;
+        type = "lua";
         config = toLua ''
           require("lazy-lsp").setup {
-            prefer_local = true
+            prefer_local = true,
+            use_vim_lsp_config = true
           }
         '';
       }
       {
-        plugin = lsp-zero-nvim;
+        plugin = nvim-lspconfig;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/lsp.lua;
       }
 
@@ -67,17 +75,17 @@
       luasnip
       lualine-nvim
 
-      nvim-lspconfig
-
       neodev-nvim
 
       {
         plugin = neo-tree-nvim;
+        type = "lua";
         config = toLua "vim.keymap.set('n', '<Leader>e', '<Cmd>Neotree toggle<CR>', { noremap = true, silent = true })";
       }
 
       {
         plugin = noice-nvim;
+        type = "lua";
         config = toLua ''
           require("noice").setup({
             lsp = {
@@ -101,6 +109,7 @@
       nvim-cmp 
       {
         plugin = nvim-cmp;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/cmp.lua;
       }
 
@@ -111,6 +120,7 @@
       telescope-fzf-native-nvim
       {
         plugin = telescope-nvim;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/telescope.lua;
       }
 
@@ -124,11 +134,13 @@
           #  p.tree-sitter-python
           #  p.tree-sitter-json
           #]));
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
       }
 
       {
         plugin = vim-highlightedyank;
+        type = "lua";
         config = toLua "vim.g.highlightedyank_highlight_duration = 300";
       }
 
@@ -145,7 +157,7 @@
       which-key-nvim
     ];
 
-    extraLuaConfig = ''
+    initLua = ''
 
       vim.g.mapleader = ' '
       vim.g.maplocalleader = ' '
@@ -171,7 +183,7 @@
       vim.o.mouse = 'a'
 
       vim.filetype.add({
-        extension = { sml = "sml", sig = "sml", fun = "sml" },
+        extension = { sml = "sml", sig = "sml", fun = "sml", grm = "sml" },
       })
     '';
   };
