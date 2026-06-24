@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, odysseus-nix, system, ... }:
 
 let
   ollama = lib.getExe config.services.ollama.package;
@@ -6,14 +6,24 @@ let
   port = 11434;
 
   models = [
-    "kimi-k2.7-code"
-    "deepseek-v4-pro"
-    "deepseek-v4-flash"
+    # Coding
     "gemma4:12b"
-    "gemma4:31b"
+    "gemma4:latest"
+    "qwen3.6:latest"
+    "qwen3.6:27b"
+
+    # Chat
+    "granite4.1:8b"
+
+    # Embed
+    "qwen3-embedding:latest"
   ];
 
 in {
+  home.packages = [
+    odysseus-nix.packages.${system}.odysseus-dev
+  ];
+
   services.ollama = {
     enable = true;
     port = port;
@@ -28,20 +38,20 @@ in {
   systemd.user.services.ollama-pull-models = {
     Unit = {
       Description = "Pull Ollama models";
-      Requries = [ "ollama.service" ];
-      After = [ "ollama.services" "network.target" ];
+      Requires = [ "ollama.service" ];
+      After = [ "ollama.service" "network.target" ];
     };
 
     Service = {
       Type = "oneshot";
       Environment = [
-        "OLLAMA_HOST=${host}:${port}"
+        "OLLAMA_HOST=${host}:${toString port}"
       ];
 
       ExecStart = pkgs.writeShellScript "ollama-pull-models" ''
         set -euo pipefail
 
-        until ${pkgs.curl}/bin/curl -fsS http://127.0.0.1:11434/api/tags >/dev/null; do
+        until ${pkgs.curl}/bin/curl -fsS http://${host}:${toString port}/api/tags >/dev/null; do
           sleep 1
         done
 

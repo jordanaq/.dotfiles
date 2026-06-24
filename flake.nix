@@ -27,6 +27,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    odysseus-nix = {
+      url = "github:KangaZero/odysseus-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,7 +39,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, nixvirt, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, nixvirt, odysseus-nix, ... }@inputs:
     let
       lib = nixpkgs.lib;
       system = "x86_64-linux";
@@ -80,6 +85,7 @@
           extraSpecialArgs = {
             inherit inputs;
             inherit system;
+            inherit odysseus-nix;
           };
         };
       };
