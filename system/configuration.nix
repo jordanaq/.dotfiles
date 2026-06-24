@@ -111,7 +111,7 @@ in {
 
   nixpkgs.config = {
     allowUnfree = true;
-    rocmTargets = [ "gfx1012" ];
+    rocmTargets = [ "gfx1201" ];
   };
 
   programs.steam.enable = true;
