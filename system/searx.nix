@@ -18,6 +18,9 @@
       server = {
         bind_address = "127.0.0.1";
         port = 8888;
+        method = "POST";
+
+        secret_key = "$SEARXNG_SECRET";
 
         public_instance = false;
         limiter = false;
