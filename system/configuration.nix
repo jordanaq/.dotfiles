@@ -36,6 +36,7 @@ in {
   # Networking
   networking = {
     hostName = "${uname}-nixos";
+
     wireless = {
       enable = true;
       networks = {
@@ -44,10 +45,21 @@ in {
         };
       };
     };
+
     nameservers = [
       "9.9.9.9"
       "149.112.112.112"
     ];
+
+    firewall.extraCommands = ''
+      iptables -A INPUT -d 224.0.0.0/4 -j ACCEPT
+      iptables -A INPUT -s 224.0.0.0/4 -j ACCEPT
+    '';
+  
+    firewall.extraStopCommands = ''
+      iptables -D INPUT -d 224.0.0.0/4 -j ACCEPT || true
+      iptables -D INPUT -s 224.0.0.0/4 -j ACCEPT || true
+    '';
   };
 
   services.openssh = {
