@@ -187,6 +187,7 @@ in {
 
   hardware.amdgpu = {
     opencl.enable = true;
+    initrd.enable = true;
   };
 
   fileSystems."/mnt" = {
