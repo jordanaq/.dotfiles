@@ -7,15 +7,16 @@ let
 
   models = [
     # Coding
+    "qwen2.5-coder:14b"
+
+    # Research / long reading
     "gemma4:12b"
-    "gemma4:latest"
-    "qwen3.6:latest"
-    "qwen3.6:27b"
+    "gemma4:e4b"
 
-    # Chat
-    "granite4.1:8b"
+    # Reasoning
+    "gpt-oss:20b"
 
-    # Embed
+    # Retrieval
     "qwen3-embedding:latest"
   ];
 
@@ -28,10 +29,24 @@ in {
     enable = true;
     port = port;
     host = host;
-    acceleration = "rocm";
+    package = pkgs.ollama-rocm.override {
+      rocmPackages = pkgs.rocmPackages.gfx1201;
+    };
 
-    environmentVariables = { 
+    environmentVariables = {
       OLLAMA_MODELS = "${config.home.homeDirectory}/.local/share/ollama/models";
+      OLLAMA_CONTEXT_LENGTH = "32768";
+      OLLAMA_FLASH_ATTENTION = "1";
+      OLLAMA_GPU_OVERHEAD = "2147483648";
+      OLLAMA_KEEP_ALIVE = "2m";
+      OLLAMA_KV_CACHE_TYPE = "q8_0";
+      OLLAMA_LLM_LIBRARY = "rocm_v7_2";
+      OLLAMA_MAX_LOADED_MODELS = "1";
+      OLLAMA_NUM_PARALLEL = "1";
+      LLAMA_ARG_N_GPU_LAYERS = "all";
+
+      # Restrict ROCm discovery to the discrete RX 9070 XT.
+      ROCR_VISIBLE_DEVICES = "GPU-fb707245ca77dfde";
     };
   };
 
