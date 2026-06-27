@@ -9,4 +9,10 @@
     ./rust.nix
     ./sml.nix
   ];
+
+  home.packages = with pkgs; [
+    eslint
+    typescript
+    typescript-language-server
+  ];
 }
