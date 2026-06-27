@@ -21,6 +21,14 @@ vim.lsp.config("ltex_plus", {
   },
 })
 
+vim.lsp.config("eslint", {
+  settings = {
+    workingDirectory = {
+      mode = "auto",
+    },
+  },
+})
+
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(event)
     local bufnr = event.buf
@@ -58,13 +66,25 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 vim.lsp.enable({
+  "bashls",
+  "clangd",
+  "cssls",
+  "eslint",
+  "html",
+  "jsonls",
   "lua_ls",
   "ltex_plus",
   "harper_ls",
   "hls",
+  "julials",
+  "marksman",
   "millet",
   "nil_ls",
   "pyright",
+  "rust_analyzer",
+  "svelte",
+  "taplo",
   "ts_ls",
   "vale_ls",
+  "yamlls",
 })

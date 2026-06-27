@@ -1,6 +1,14 @@
 local adapters = require("codecompanion.adapters")
 
 require("codecompanion").setup({
+  display = {
+    chat = {
+      window = {
+        layout = "vertical",
+        position = "right",
+      },
+    },
+  },
   adapters = {
     http = {
       ollama = function()
@@ -57,7 +65,10 @@ vim.keymap.set("v", "<leader>ae", ":CodeCompanion ", { desc = "AI edit selection
 vim.keymap.set("n", "<leader>aA", function()
   vim.ui.input({ prompt = "Agent task: " }, function(input)
     if input and input ~= "" then
-      vim.api.nvim_cmd({ cmd = "CodeCompanionChat", args = { "@{agent} " .. input } }, {})
+      vim.api.nvim_cmd({
+        cmd = "CodeCompanionChat",
+        args = { "adapter=ollama", "model=gemma4:12b", "@{agent} " .. input },
+      }, {})
     end
   end)
 end, { desc = "AI agent task" })

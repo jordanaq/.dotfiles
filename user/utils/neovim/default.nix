@@ -17,16 +17,34 @@
     vimdiffAlias = true;
 
     extraPackages = with pkgs; [
+      # AI assistant tooling
+      curl
+      file
+      ripgrep
+
       # Language servers
+      bash-language-server
+      clang-tools
       harper
       haskell-language-server
+      (julia.withPackages [
+        "LanguageServer"
+        "StaticLint"
+        "SymbolServer"
+      ])
       ltex-ls-plus
       lua-language-server
+      marksman
       millet
       nil
       pyright
+      rust-analyzer
+      svelte-language-server
+      taplo
       typescript-language-server
       vale-ls
+      vscode-langservers-extracted
+      yaml-language-server
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -44,6 +62,13 @@
 
       cmp_luasnip
       cmp-nvim-lsp
+
+      plenary-nvim
+      {
+        plugin = codecompanion-nvim;
+        type = "lua";
+        config = toLuaFile ./assets/nvim/plugin/codecompanion.lua;
+      }
 
       {
         plugin = comment-nvim;
@@ -114,6 +139,8 @@
       }
 
       nvim-web-devicons
+      
+      obsidian-nvim
 
       persistence-nvim
 
@@ -171,6 +198,7 @@
       -- vim.o.relativenumber = true
       
       vim.o.signcolumn = 'yes'
+      vim.o.splitright = true
       
       vim.o.tabstop = 2
       vim.o.shiftwidth = 2
@@ -182,8 +210,21 @@
       
       vim.o.mouse = 'a'
 
+      vim.cmd('filetype plugin indent on')
+      vim.cmd('syntax enable')
+
       vim.filetype.add({
-        extension = { sml = "sml", sig = "sml", fun = "sml", grm = "sml" },
+        extension = {
+          cabal = 'cabal',
+          fun = 'sml',
+          hs = 'haskell',
+          lhs = 'lhaskell',
+          nix = 'nix',
+          sig = 'sml',
+          sml = 'sml',
+          svelte = 'svelte',
+          toml = 'toml',
+        },
       })
     '';
   };
