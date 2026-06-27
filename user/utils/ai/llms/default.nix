@@ -4,6 +4,7 @@ let
   ollama = lib.getExe config.services.ollama.package;
   host = "127.0.0.1";
   port = 11434;
+  searxUrl = "http://127.0.0.1:8888/search";
 
   models = [
     # Coding
@@ -24,6 +25,82 @@ in {
   home.packages = [
     odysseus-nix.packages.${system}.odysseus-dev
   ];
+
+  programs.opencode = {
+    enable = true;
+
+    tools = {
+      websearch = ''
+        import { tool } from "@opencode-ai/plugin"
+
+        export default tool({
+          description: "Search the web using the user's local SearXNG instance",
+          args: {
+            query: tool.schema.string().describe("Search query"),
+            limit: tool.schema.number().optional().describe("Maximum number of results to return"),
+          },
+          async execute(args) {
+            const limit = Math.max(1, Math.min(args.limit ?? 8, 20))
+            const body = new URLSearchParams({
+              q: args.query,
+              format: "json",
+              safesearch: "0",
+            })
+
+            const response = await fetch("${searxUrl}", {
+              method: "POST",
+              headers: {
+                "accept": "application/json",
+                "content-type": "application/x-www-form-urlencoded",
+              },
+              body,
+            })
+
+            if (!response.ok) {
+              return `SearXNG search failed: HTTP ''${response.status} ''${response.statusText}`
+            }
+
+            const data = await response.json()
+            const results = (data.results ?? []).slice(0, limit)
+
+            if (results.length === 0) {
+              return `No SearXNG results found for "''${args.query}".`
+            }
+
+            return results.map((result, index) => {
+              const title = result.title ?? "Untitled"
+              const url = result.url ?? ""
+              const content = result.content ?? ""
+              return `''${index + 1}. ''${title}\n''${url}\n''${content}`
+            }).join("\n\n")
+          },
+        })
+      '';
+    };
+    
+    settings = {
+      "tools" = {
+        "websearch" = true;
+        "codesearch" = true;
+      };
+
+      "provider" = {
+        "ollama" = {
+          "npm" = "@ai-sdk/openai-compatible";
+          "options" = {
+            "baseURL" = "http://localhost:11434/v1";
+          };
+          "models" = {
+            "qwen2.5-coder:14b" = {};
+             "gemma4:12b" = {};
+             "gemma4:e4b" = {};
+             "gpt-oss:20b" = {};
+             "qwen3-embedding:latest" = {};
+          };
+        };
+      };
+    };
+  };
 
   services.ollama = {
     enable = true;
