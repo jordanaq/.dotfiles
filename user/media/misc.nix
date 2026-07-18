@@ -14,6 +14,7 @@
 
   home.packages = with pkgs; [
     calibre
+    ffmpeg
     kdePackages.kdenlive
     obs-studio
     vlc
