@@ -9,6 +9,9 @@
   in {
     enable = true;
 
+    withRuby = true;
+    withPython3 = true;
+
     package = pkgs.neovim-unwrapped;
     defaultEditor = true;
 
