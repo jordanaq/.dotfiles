@@ -6,4 +6,6 @@
     typescript
     typescript-language-server
   ];
+
+  programs.bun.enable = true;
 }
