@@ -18,13 +18,10 @@ require("codecompanion").setup({
           },
           schema = {
             model = {
-              default = "qwen2.5-coder:14b",
+              default = "qwen3-coder-next:latest",
             },
             choices = {
-              "qwen2.5-coder:14b",
-              "gemma4:12b",
-              "gemma4:e4b",
-              "gpt-oss:20b",
+              "qwen3-coder-next:latest",
             },
             num_ctx = {
               default = 32768,
@@ -41,19 +38,19 @@ require("codecompanion").setup({
     chat = {
       adapter = {
         name = "ollama",
-        model = "qwen2.5-coder:14b",
+        model = "qwen3-coder-next:latest",
       },
     },
     inline = {
       adapter = {
         name = "ollama",
-        model = "qwen2.5-coder:14b",
+        model = "qwen3-coder-next:latest",
       },
     },
     background = {
       adapter = {
         name = "ollama",
-        model = "gemma4:e4b",
+        model = "qwen3-coder-next:latest",
       },
     },
   },
@@ -67,7 +64,7 @@ vim.keymap.set("n", "<leader>aA", function()
     if input and input ~= "" then
       vim.api.nvim_cmd({
         cmd = "CodeCompanionChat",
-        args = { "adapter=ollama", "model=gemma4:12b", "@{agent} " .. input },
+        args = { "adapter=ollama", "model=qwen3-coder-next:latest", "@{agent} " .. input },
       }, {})
     end
   end)
