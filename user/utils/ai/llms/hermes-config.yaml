@@ -1,14 +1,26 @@
 model:
   provider: custom
-  default: qwen3.5:9b
+  default: holo3.1:35b-a3b
   base_url: http://localhost:11434/v1/
-  reasoning_effort: max
+  context_length: 131072
+
+agent:
+  reasoning_effort: medium
+  tool_use_enforcement:
+    - qwen
+
+display:
+  show_reasoning: true
+
+custom_providers:
+  - name: Local (localhost:11434)
+    base_url: http://localhost:11434/v1/
+    model: holo3.1:35b-a3b
 
 auxiliary:
   compression:
-    provider: custom
-    model: qwen3.5:9b
-    base_url: http://localhost:11434/v1/
+    provider: main
+    model: ''
     context_length: 131072
 
 web:
