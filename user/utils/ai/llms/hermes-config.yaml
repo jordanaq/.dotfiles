@@ -1,0 +1,18 @@
+model:
+  provider: custom
+  default: qwen3.5:9b
+  base_url: http://localhost:11434/v1/
+  reasoning_effort: max
+
+auxiliary:
+  compression:
+    provider: custom
+    model: qwen3.5:9b
+    base_url: http://localhost:11434/v1/
+    context_length: 131072
+
+web:
+  backend: searxng
+  use_gateway: false
+
+_config_version: 33
