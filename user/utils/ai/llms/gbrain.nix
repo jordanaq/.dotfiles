@@ -6,22 +6,34 @@
 { config, inputs, lib, pkgs, system, ... }:
 
 let
-  common = import ../common.nix { inherit config inputs lib pkgs system; };
+  hermesPackage = inputs.hermes-agent.packages.${system}.default;
+  gbrainSource = inputs.gbrain-src;
+  gbrainRuntimeDir = "${config.home.homeDirectory}/.local/share/gbrain/runtime";
+  gbrainSecretsFile = "${config.home.homeDirectory}/.config/gbrain/secrets.env";
+  gbrainAutopilotRepo = "${config.home.homeDirectory}/brain";
+  gbrainShellPath = lib.makeBinPath [
+    pkgs.bun
+    pkgs.coreutils
+    pkgs.findutils
+    pkgs.git
+    pkgs.gnugrep
+    pkgs.gnused
+  ];
 
   gbrainPackage = pkgs.writeShellScriptBin "gbrain" ''
     set -euo pipefail
 
-    runtime_dir=${lib.escapeShellArg common.gbrainRuntimeDir}
+    runtime_dir=${lib.escapeShellArg gbrainRuntimeDir}
     if [ ! -f "$runtime_dir/src/cli.ts" ]; then
       echo "gbrain runtime is not installed yet. Start systemd user service gbrain-runtime.service or run home-manager switch." >&2
       exit 1
     fi
 
     export BUN_INSTALL=${lib.escapeShellArg "${config.home.homeDirectory}/.bun"}
-    export PATH="${common.gbrainShellPath}:$BUN_INSTALL/bin:$PATH"
+    export PATH="${gbrainShellPath}:$BUN_INSTALL/bin:$PATH"
 
     # Local-only secrets: keep API keys outside the dotfiles repo.
-    gbrain_secrets_file=${lib.escapeShellArg common.gbrainSecretsFile}
+    gbrain_secrets_file=${lib.escapeShellArg gbrainSecretsFile}
     if [ -f "$gbrain_secrets_file" ]; then
       # shellcheck disable=SC1090
       . "$gbrain_secrets_file"
@@ -34,14 +46,14 @@ in {
   home.activation.gbrainSecretsPerms = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p "${config.home.homeDirectory}/.config/gbrain"
     chmod 700 "${config.home.homeDirectory}/.config/gbrain"
-    if [ -f "${common.gbrainSecretsFile}" ]; then
-      chmod 600 "${common.gbrainSecretsFile}"
+    if [ -f "${gbrainSecretsFile}" ]; then
+      chmod 600 "${gbrainSecretsFile}"
     fi
   '';
 
   home.packages = [
     gbrainPackage
-    common.hermesPackage
+    hermesPackage
     inputs.hermes-agent.packages.${system}.desktop
     pkgs.python3Packages.huggingface-hub
     # Browser automation backend for Hermes' `browser` toolset.
@@ -59,7 +71,7 @@ in {
   home.sessionVariables.AGENT_BROWSER_EXECUTABLE_PATH =
     "${pkgs.chromium}/bin/chromium";
 
-  home.file.".hermes/config.yaml".source = ../hermes-config.yaml;
+  home.file.".hermes/config.yaml".source = ./hermes-config.yaml;
 
   systemd.user.services.hermes-gateway = {
     Unit = {
@@ -70,13 +82,21 @@ in {
 
     Service = {
       Type = "simple";
-      ExecStart = "${lib.getExe common.hermesPackage} gateway run --replace";
+      ExecStart = "${lib.getExe hermesPackage} gateway run --replace";
       Restart = "on-failure";
       RestartSec = 5;
       WorkingDirectory = config.home.homeDirectory;
       Environment = [
         "HOME=${config.home.homeDirectory}"
         "HERMES_HOME=${config.home.homeDirectory}/.hermes"
+        # Point Hermes' Firecrawl web backend at the self-hosted instance.
+        "FIRECRAWL_API_URL=http://localhost:3002"
+        # Pin agent-browser to the Nix-wrapped Chromium so it bypasses its
+        # own Chrome download (which produces a generic-Linux ELF that
+        # cannot run on NixOS). `home.sessionVariables` propagates to
+        # interactive shells but NOT to systemd user services, so we set
+        # it here explicitly.
+        "AGENT_BROWSER_EXECUTABLE_PATH=${pkgs.chromium}/bin/chromium"
       ];
     };
 
@@ -94,9 +114,9 @@ in {
       Type = "oneshot";
       Environment = [
         "BUN_INSTALL=${config.home.homeDirectory}/.bun"
-        "PATH=${common.gbrainShellPath}:${config.home.homeDirectory}/.bun/bin"
-        "GBRAIN_RUNTIME_DIR=${common.gbrainRuntimeDir}"
-        "GBRAIN_SOURCE=${common.gbrainSource}"
+        "PATH=${gbrainShellPath}:${config.home.homeDirectory}/.bun/bin"
+        "GBRAIN_RUNTIME_DIR=${gbrainRuntimeDir}"
+        "GBRAIN_SOURCE=${gbrainSource}"
       ];
       ExecStart = pkgs.writeShellScript "gbrain-runtime-install" ''
         set -euo pipefail
@@ -144,7 +164,7 @@ in {
         set -euo pipefail
 
         hermes_home=${lib.escapeShellArg "${config.home.homeDirectory}/.hermes"}
-        gbrain_runtime=${lib.escapeShellArg common.gbrainRuntimeDir}
+        gbrain_runtime=${lib.escapeShellArg gbrainRuntimeDir}
         skills_resolver="$hermes_home/skills/RESOLVER.md"
 
         if [ -f "$skills_resolver" ]; then
@@ -170,7 +190,7 @@ in {
 
     Service = {
       Type = "simple";
-      ExecStart = "${lib.getExe gbrainPackage} autopilot --repo ${common.gbrainAutopilotRepo}";
+      ExecStart = "${lib.getExe gbrainPackage} autopilot --repo ${gbrainAutopilotRepo}";
       Restart = "always";
       RestartSec = 30;
       WorkingDirectory = config.home.homeDirectory;

@@ -1,13 +1,29 @@
 # OpenCode (editor-side LLM client) configuration.
 #
 # Owns the `programs.opencode` block including the SearXNG websearch tool and
-# the Ollama provider entry that references the model catalog from
-# `ollama/models.nix`.
-{ config, inputs, lib, pkgs, system, ... }:
+# the Ollama provider entry. The model list mirrors the one in
+# `ollama/models.nix`; keep both in sync.
+{ lib, ... }:
 
 let
-  common = import ../common.nix { inherit config inputs lib pkgs system; };
-  models = import ./ollama/models.nix { inherit config lib; };
+  searxUrl = "http://127.0.0.1:8888/search";
+
+  allOllamaModels = [
+    "qwen3.5:9b"
+    "huihui_ai/qwen3.5-abliterated:9b"
+    "qwen3.6:35b"
+    "qwen3-coder-next:latest"
+    "qwen3-embedding:latest"
+    "holo3.1:35b-a3b"
+    "qwen3.6-abliterated:35b-a3b"
+  ];
+
+  opencodeModelAttrs = builtins.listToAttrs (
+    map (modelName: {
+      name = modelName;
+      value = { };
+    }) allOllamaModels
+  );
 in {
   programs.opencode = {
     enable = true;
@@ -30,7 +46,7 @@ in {
               safesearch: "0",
             })
 
-            const response = await fetch("${common.searxUrl}", {
+            const response = await fetch("${searxUrl}", {
               method: "POST",
               headers: {
                 "accept": "application/json",
@@ -73,7 +89,7 @@ in {
           "options" = {
             "baseURL" = "http://localhost:11434/v1";
           };
-          "models" = models.opencodeModelAttrs;
+          "models" = opencodeModelAttrs;
         };
       };
     };

@@ -16,7 +16,10 @@
 
     settings = {
       server = {
-        bind_address = "127.0.0.1";
+        # 0.0.0.0 so the Firecrawl containers can reach SearXNG via
+        # host.docker.internal:8888 (their /search backend). The NixOS
+        # firewall still gates outside access; `openFirewall` was already true.
+        bind_address = "0.0.0.0";
         port = 8888;
         method = "POST";
 

@@ -3,15 +3,17 @@
 # Owns the `services.ollama` block plus its environment variables. The model
 # pull/import services live in `services.nix` so this file stays focused on the
 # daemon itself.
-{ config, inputs, lib, pkgs, system, ... }:
+{ config, pkgs, ... }:
 
-let
-  common = import ../common.nix { inherit config inputs lib pkgs system; };
-in {
+{
   services.ollama = {
     enable = true;
-    port = common.port;
-    host = common.host;
+    port = 11434;
+    # 0.0.0.0 (not 127.0.0.1) so the rootless-Docker Firecrawl containers can
+    # reach Ollama via host.docker.internal for local /extract. The NixOS
+    # firewall default-denies inbound, so LAN machines still can't reach it;
+    # localhost (Hermes inference) keeps working because 0.0.0.0 includes it.
+    host = "0.0.0.0";
     package = pkgs.ollama-rocm.override {
       rocmPackages = pkgs.rocmPackages.gfx1201;
     };

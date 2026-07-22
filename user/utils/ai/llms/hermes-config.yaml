@@ -2,7 +2,7 @@ model:
   provider: custom
   default: holo3.1:35b-a3b
   base_url: http://localhost:11434/v1/
-  context_length: 131072
+  context_length: 262144
 
 agent:
   reasoning_effort: medium
@@ -21,10 +21,20 @@ auxiliary:
   compression:
     provider: main
     model: ''
-    context_length: 131072
+    context_length: 262144
 
 web:
-  backend: searxng
+  # Self-hosted Firecrawl (http://localhost:3002) handles both search and
+  # extraction. SearXNG still runs locally as Firecrawl's search backend.
+  backend: firecrawl
   use_gateway: false
+
+# Enable Hermes' browser toolset. The `browser` tool spawns `agent-browser`
+# (provided by `pkgs.agent-browser` in `gbrain.nix`). The browser binary
+# itself is pinned to the Nix-wrapped Chromium via
+# `home.sessionVariables.AGENT_BROWSER_EXECUTABLE_PATH`.
+toolsets:
+  enabled:
+    - browser
 
 _config_version: 33

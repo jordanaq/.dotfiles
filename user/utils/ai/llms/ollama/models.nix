@@ -6,16 +6,16 @@
 #   - the helper that turns one HF model into a shell snippet for the import
 #     service
 #   - the combined `allOllamaModels` list used by opencode's provider config
-{ config, inputs, lib, pkgs, system, ... }:
+{ config, pkgs, lib, ... }:
 
 let
-  common = import ../common.nix { inherit config inputs lib pkgs system; };
+  ollama = lib.getExe config.services.ollama.package;
+  huggingfaceCli = "${pkgs.python3Packages.huggingface-hub}/bin/hf";
 
   ollamaRegistryModels = [
     # Research / long reading
     "qwen3.5:9b"
     "huihui_ai/qwen3.5-abliterated:9b"
-    "qwen3.6:35b"
 
     # Offline agentic coding
     "qwen3-coder-next:latest"
@@ -63,8 +63,6 @@ let
   # entry instead of aborting the whole oneshot.
   mkHfImportCommands = model:
     let
-      ollama = common.ollama;
-      huggingfaceCli = common.huggingfaceCli;
       safeRepo = builtins.replaceStrings [ "/" ] [ "__" ] model.repo;
       cacheDir = "${config.home.homeDirectory}/.cache/huggingface/ollama/${safeRepo}";
       parameterLines = lib.concatStringsSep "\n" (

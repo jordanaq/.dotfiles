@@ -17,6 +17,7 @@
     ./ollama/default.nix
     ./ollama/services.nix
     ./gbrain.nix
+    ./firecrawl.nix
     ./opencode.nix
   ];
 }

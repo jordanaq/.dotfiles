@@ -9,6 +9,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    gbrain-src = {
+      url = "github:garrytan/gbrain";
+      flake = false;
+    };
+
     hermes-agent.url = "github:NousResearch/hermes-agent";
 
     catppuccin.url = "github:catppuccin/nix";

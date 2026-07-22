@@ -110,6 +110,22 @@
         "type": "github"
       }
     },
+    "gbrain-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784328189,
+        "narHash": "sha256-KkkgzKdJO6k2zeh72aunJ0m7LCR6ce11s3X+L6ywLa0=",
+        "owner": "garrytan",
+        "repo": "gbrain",
+        "rev": "f72de97943eb9dc1292a80f85d19db7e311855dc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "garrytan",
+        "repo": "gbrain",
+        "type": "github"
+      }
+    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -702,6 +718,7 @@
       "inputs": {
         "catppuccin": "catppuccin",
         "firefox-addons": "firefox-addons",
+        "gbrain-src": "gbrain-src",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager",
         "hyprland": "hyprland",

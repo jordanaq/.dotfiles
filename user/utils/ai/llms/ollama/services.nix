@@ -3,11 +3,13 @@
 # Owns the two oneshot services (`ollama-pull-models`,
 # `ollama-import-hf-models`) and the recurring timer for HF imports. The model
 # lists and import helper come from `models.nix`.
-{ config, inputs, lib, pkgs, system, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  common = import ../common.nix { inherit config inputs lib pkgs system; };
-  models = import ./models.nix { inherit config lib; };
+  host = "127.0.0.1";
+  port = 11434;
+  ollama = lib.getExe config.services.ollama.package;
+  models = import ./models.nix { inherit config pkgs lib; };
 in {
   systemd.user.services.ollama-pull-models = {
     Unit = {
@@ -19,18 +21,18 @@ in {
     Service = {
       Type = "oneshot";
       Environment = [
-        "OLLAMA_HOST=${common.host}:${toString common.port}"
+        "OLLAMA_HOST=${host}:${toString port}"
       ];
 
       ExecStart = pkgs.writeShellScript "ollama-pull-models" ''
         set -euo pipefail
 
-        until ${pkgs.curl}/bin/curl -fsS http://${common.host}:${toString common.port}/api/tags >/dev/null; do
+        until ${pkgs.curl}/bin/curl -fsS http://${host}:${toString port}/api/tags >/dev/null; do
           sleep 1
         done
 
         ${lib.concatMapStringsSep "\n" (model: ''
-          ${common.ollama} pull ${lib.escapeShellArg model}
+          ${ollama} pull ${lib.escapeShellArg model}
         '') models.ollamaRegistryModels}
       '';
     };
@@ -50,13 +52,13 @@ in {
     Service = {
       Type = "oneshot";
       Environment = [
-        "OLLAMA_HOST=${common.host}:${toString common.port}"
+        "OLLAMA_HOST=${host}:${toString port}"
       ];
 
       ExecStart = pkgs.writeShellScript "ollama-import-hf-models" ''
         set -euo pipefail
 
-        until ${pkgs.curl}/bin/curl -fsS http://${common.host}:${toString common.port}/api/tags >/dev/null; do
+        until ${pkgs.curl}/bin/curl -fsS http://${host}:${toString port}/api/tags >/dev/null; do
           sleep 1
         done
 

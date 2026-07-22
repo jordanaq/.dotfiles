@@ -5,6 +5,7 @@
     graphviz
     htop
     killall
+    libfsm
     maliit-keyboard
     maliit-framework
     xclip
