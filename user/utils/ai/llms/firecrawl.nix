@@ -52,6 +52,8 @@ in {
 
   # Generate secrets once; never overwrite an existing file (so a
   # `home-manager switch` does not rotate live credentials).
+  # Written with printf (no heredoc) to avoid Nix ''-string indentation
+  # mangling the heredoc terminator.
   home.activation.firecrawlSecrets = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${lib.escapeShellArg cfgDir}
     chmod 700 ${lib.escapeShellArg cfgDir}
@@ -64,27 +66,27 @@ in {
       # the docker0 bridge. Resolve it once at activation time.
       host_ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet/{print $2}' | head -1 | cut -d/ -f1)
       [ -z "$host_ip" ] && host_ip=127.0.0.1
-      cat > ${lib.escapeShellArg envFile} <<EOF
-PORT=3002
-INTERNAL_PORT=3002
-USE_DB_AUTHENTICATION=false
-POSTGRES_USER=firecrawl
-POSTGRES_DB=firecrawl
-POSTGRES_PASSWORD=$pg
-RABBITMQ_USER=firecrawl
-RABBITMQ_PASSWORD=$rbmq
-BULL_AUTH_KEY=$bull
-BLOCK_MEDIA=false
-ALLOW_LOCAL_WEBHOOKS=false
-MAX_CPU=0.8
-MAX_RAM=0.8
-# Local SearXNG (NixOS service, bound 0.0.0.0) provides Firecrawl's /search.
-SEARXNG_ENDPOINT=http://$host_ip:8888
-# Local Ollama (bound 0.0.0.0) provides Firecrawl's /extract backend.
-OLLAMA_BASE_URL=http://$host_ip:11434
-MODEL_NAME=holo3.1:35b-a3b
-MODEL_EMBEDDING_NAME=
-EOF
+      printf '%s\n' \
+        "PORT=3002" \
+        "INTERNAL_PORT=3002" \
+        "USE_DB_AUTHENTICATION=false" \
+        "POSTGRES_USER=firecrawl" \
+        "POSTGRES_DB=firecrawl" \
+        "POSTGRES_PASSWORD=$pg" \
+        "RABBITMQ_USER=firecrawl" \
+        "RABBITMQ_PASSWORD=$rbmq" \
+        "BULL_AUTH_KEY=$bull" \
+        "BLOCK_MEDIA=false" \
+        "ALLOW_LOCAL_WEBHOOKS=false" \
+        "MAX_CPU=0.8" \
+        "MAX_RAM=0.8" \
+        # Local Ollama (bound 0.0.0.0) is reachable directly, but Firecrawl's
+        # AI SDK posts to /chat (Ollama needs /api/chat). The relay owns a
+        # distinct LAN port (11435 -> 127.0.0.1:11434) to rewrite the path.
+        OLLAMA_BASE_URL=http://$host_ip:11435
+        "MODEL_NAME=holo3.1:35b-a3b" \
+        "MODEL_EMBEDDING_NAME=" \
+        > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi
   '';
@@ -99,8 +101,8 @@ EOF
 
     Service = {
       Type = "simple";
-      ExecStart = lib.getExe up;
-      ExecStop = lib.getExe down;
+      ExecStart = up;
+      ExecStop = down;
       Restart = "on-failure";
       RestartSec = 10;
       WorkingDirectory = config.home.homeDirectory;
@@ -125,7 +127,7 @@ EOF
 
     Service = {
       Type = "simple";
-      ExecStart = lib.getExe relayUp;
+      ExecStart = relayUp;
       Restart = "on-failure";
       RestartSec = 5;
       WorkingDirectory = cfgDir;

@@ -16,7 +16,11 @@ import re
 import socket, threading, time
 
 LAN = "192.168.50.13"
-PAIRS = [(8888, "127.0.0.1", 8888), (11434, "127.0.0.1", 11434)]
+# SearXNG still binds 127.0.0.1:8888, so the relay owns :8888 on the LAN.
+# Ollama now binds *:11434 (after nixos-rebuild), so the relay forwards a
+# DISTINCT LAN port (11435) -> 127.0.0.1:11434 to avoid the bind conflict
+# and still rewrite /chat -> /api/chat for Firecrawl's AI SDK.
+PAIRS = [(8888, "127.0.0.1", 8888), (11435, "127.0.0.1", 11434)]
 
 
 def relay(src, dst):
