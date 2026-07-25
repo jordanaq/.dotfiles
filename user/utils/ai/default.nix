@@ -2,6 +2,7 @@
 
 {
   imports = [
+    ./comfy
     ./llms
   ];
 }
