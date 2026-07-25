@@ -3,6 +3,7 @@
 {
   imports = [
     ./lutris
+    ./jagex-launcher
   ];
 
   home.packages = with pkgs; [
