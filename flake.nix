@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
 
+    comfyui-nix = {
+      url = "github:utensils/comfyui-nix";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
