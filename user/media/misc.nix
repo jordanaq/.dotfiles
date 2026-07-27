@@ -17,6 +17,8 @@
     ffmpeg
     kdePackages.kdenlive
     obs-studio
+    ocrmypdf
+    tesseract
     vlc
     zathura
   ];
