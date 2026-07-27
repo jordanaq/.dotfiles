@@ -86,15 +86,19 @@ in
     '')
   ];
 
-  # Desktop entry so it shows up in app launchers.
-  xdg.desktopEntries.jagex-launcher = {
-    name = "Jagex Launcher";
-    exec = "${pname} %U";
-    icon = "jagex-launcher";
-    terminal = false;
-    comment = "Jagex Launcher (Linux Beta) — RuneLite / OSRS";
-    categories = [ "Game" ];
-    mimeType = [ "x-scheme-handler/rshub" ];
-    startupWMClass = "Jagex Launcher";
-  };
+  # Desktop entry so it shows up in app launchers, with the real Jagex icon.
+  # (Written directly via home.file because xdg.desktopEntries isn't emitting
+  # files in this setup. Icon points at the PNG extracted from the AppImage.)
+  home.file.".local/share/applications/jagex-launcher.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Jagex Launcher (Beta)
+    Exec=${pname} %U
+    Icon=${extracted}/usr/share/icons/hicolor/512x512/apps/jagex-launcher.png
+    Terminal=false
+    Comment=Jagex Launcher (Linux Beta) — RuneLite / OSRS
+    Categories=Game;
+    MimeType=x-scheme-handler/rshub;
+    StartupWMClass=Jagex Launcher
+  '';
 }
