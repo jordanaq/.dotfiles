@@ -84,8 +84,15 @@ in {
         # AI SDK posts to /chat (Ollama needs /api/chat). The relay owns a
         # distinct LAN port (11435 -> 127.0.0.1:11434) to rewrite the path.
         OLLAMA_BASE_URL=http://$host_ip:11435
-        "MODEL_NAME=holo3.1:35b-a3b" \
-        "MODEL_EMBEDDING_NAME=" \
+        "MODEL_PROVIDER=ollama" \
+        "MODEL_NAME=qwen3.6:35b-a3b" \
+        "MODEL_EMBEDDING_NAME=qwen3-embedding:latest" \
+        # Firecrawl hardcodes provider="openai" for its extract/summary/query
+        # paths, so OLLAMA_BASE_URL alone is ignored for those. Ollama 0.30.5
+        # serves the OpenAI-compatible /v1/responses + /v1/chat/completions
+        # natively, so point the openai provider straight at it.
+        "OPENAI_BASE_URL=http://$host_ip:11434/v1" \
+        "OPENAI_API_KEY=ollama" \
         > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi

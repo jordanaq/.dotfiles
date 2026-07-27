@@ -1,20 +1,18 @@
 # OpenCode (editor-side LLM client) configuration.
 #
 # Owns the `programs.opencode` block including the SearXNG websearch tool and
-# the Ollama provider entry. The model list mirrors the one in
-# `ollama/models.nix`; keep both in sync.
+# the Ollama provider entry. The model list is the subset of Ollama models
+# exposed to the editor client; it must stay in sync with `ollama/models.nix`.
 { lib, ... }:
 
 let
   searxUrl = "http://127.0.0.1:8888/search";
 
   allOllamaModels = [
-    "qwen3.5:9b"
-    "huihui_ai/qwen3.5-abliterated:9b"
-    "qwen3.6:35b"
     "qwen3-coder-next:latest"
     "qwen3-embedding:latest"
-    "holo3.1:35b-a3b"
+    "qwen3.6:27b"
+    "qwen3.6:35b-a3b"
     "qwen3.6-abliterated:35b-a3b"
   ];
 

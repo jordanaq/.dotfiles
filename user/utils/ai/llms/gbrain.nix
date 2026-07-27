@@ -6,7 +6,6 @@
 { config, inputs, lib, pkgs, system, ... }:
 
 let
-  hermesPackage = inputs.hermes-agent.packages.${system}.default;
   gbrainSource = inputs.gbrain-src;
   gbrainRuntimeDir = "${config.home.homeDirectory}/.local/share/gbrain/runtime";
   gbrainSecretsFile = "${config.home.homeDirectory}/.config/gbrain/secrets.env";
@@ -53,8 +52,6 @@ in {
 
   home.packages = [
     gbrainPackage
-    hermesPackage
-    inputs.hermes-agent.packages.${system}.desktop
     pkgs.python3Packages.huggingface-hub
     # Browser automation backend for Hermes' `browser` toolset.
     # `chromium` provides the Nix-wrapped browser binary so agent-browser
@@ -82,7 +79,7 @@ in {
 
     Service = {
       Type = "simple";
-      ExecStart = "${lib.getExe hermesPackage} gateway run --replace";
+      ExecStart = "${lib.getExe inputs.hermes-agent.packages.${system}.default} gateway run --replace";
       Restart = "on-failure";
       RestartSec = 5;
       WorkingDirectory = config.home.homeDirectory;

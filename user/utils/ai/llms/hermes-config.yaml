@@ -1,11 +1,15 @@
 model:
-  provider: custom
-  default: holo3.1:35b-a3b
-  base_url: http://localhost:11434/v1/
-  context_length: 262144
+  provider: nous
+  default: deepseek/deepseek-v4-flash
+  # base_url intentionally omitted: the `nous` provider resolves its
+  # inference endpoint from auth state / the default Portal URL. Leaving the
+  # stale localhost:11434 base_url would override it.
+  # DeepSeek-V4 runs a 1,048,576-token context; Think-Max mode needs >= 384K,
+  # so set the full window rather than a low cap.
+  context_length: 1048576
 
 agent:
-  reasoning_effort: medium
+  reasoning_effort: max
   tool_use_enforcement:
     - qwen
 
@@ -15,7 +19,7 @@ display:
 custom_providers:
   - name: Local (localhost:11434)
     base_url: http://localhost:11434/v1/
-    model: holo3.1:35b-a3b
+    model: qwen3.6:35b-a3b
 
 auxiliary:
   compression:

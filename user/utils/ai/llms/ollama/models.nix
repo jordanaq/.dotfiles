@@ -13,15 +13,14 @@ let
   huggingfaceCli = "${pkgs.python3Packages.huggingface-hub}/bin/hf";
 
   ollamaRegistryModels = [
-    # Research / long reading
-    "qwen3.5:9b"
-    "huihui_ai/qwen3.5-abliterated:9b"
-
     # Offline agentic coding
     "qwen3-coder-next:latest"
 
     # Retrieval
     "qwen3-embedding:latest"
+
+    # General local reasoning (stock dense 27B)
+    "qwen3.6:27b"
   ];
 
   # Declarative Hugging Face models imported into Ollama at login/startup.
@@ -29,11 +28,20 @@ let
   # your session environment so the user service can authenticate.
   huggingfaceOllamaModels = [
     {
-      ollamaName = "holo3.1:35b-a3b";
-      repo = "Hcompany/Holo-3.1-35B-A3B-GGUF";
-      file = "q4_k_m.gguf";
+      ollamaName = "infracelestial:27b";
+      repo = "bartowski/Mawdistical-S1_Infracelestial-27B-GGUF";
+      file = "Mawdistical-S1_Infracelestial-27B-Q4_K_M.gguf";
       parameters = {
         num_ctx = "262144";
+      };
+    }
+
+    {
+      ollamaName = "nightlife:24b";
+      repo = "Mawdistical/Mawdistic-NightLife-24b-GGUF";
+      file = "Mawdistical_Mawdistic-NightLife-24b-Q4_K_M.gguf";
+      parameters = {
+        num_ctx = "32768";
       };
     }
 
@@ -76,6 +84,12 @@ let
         ''
           gguf_path="$(find "${cacheDir}" -maxdepth 1 -type f -name '*.gguf' | head -n 1)"
         '';
+
+      # Download only the pinned GGUF when one is declared; otherwise pull
+      # every *.gguf in the repo (legacy fallback for file-less entries).
+      includeArg = if model ? file
+        then "--include ${lib.escapeShellArg model.file}"
+        else "--include ${lib.escapeShellArg "*.gguf"}";
     in ''
       if ${ollama} show ${lib.escapeShellArg model.ollamaName} >/dev/null 2>&1; then
         echo "${model.ollamaName} already exists in Ollama, skipping import"
@@ -84,7 +98,7 @@ let
 
         echo "Downloading GGUF model for ${model.repo} into ${cacheDir}..."
 
-        ${huggingfaceCli} download ${lib.escapeShellArg model.repo} --include '*.gguf' --local-dir "${cacheDir}"
+        ${huggingfaceCli} download ${lib.escapeShellArg model.repo} ${includeArg} --local-dir "${cacheDir}"
 
         ${ggufPathExpr}
         if [ -z "''${gguf_path:-}" ] || [ ! -f "''${gguf_path}" ]; then

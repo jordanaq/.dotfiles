@@ -5,9 +5,10 @@
 { inputs, lib, system, ... }:
 
 let
+  hermesPackage = inputs.hermes-agent.packages.${system}.default;
   hermesDesktopPackage = inputs.hermes-agent.packages.${system}.desktop;
 in {
-  home.packages = [ hermesDesktopPackage ];
+  home.packages = [ hermesPackage hermesDesktopPackage ];
 
   xdg.desktopEntries."hermes-desktop" = {
     name = "Hermes Desktop";

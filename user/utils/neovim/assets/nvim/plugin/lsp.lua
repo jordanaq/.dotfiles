@@ -4,6 +4,9 @@ vim.lsp.config("*", {
   capabilities = capabilities,
 })
 
+-- Open diagnostic float for the line under the cursor
+vim.keymap.set("n", "gl", vim.diagnostic.open_float, { desc = "Show diagnostics" })
+
 vim.lsp.config("harper_ls", {
   settings = {
     harper_ls = {

@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
 """
 Temporary relay so the Firecrawl rootless-Docker container can reach host
-services that still bind 127.0.0.1 (SearXNG :8888, Ollama :11434).
+services that still bind 127.0.0.1 (Ollama :11434).
 
 Rootless Docker with --disable-host-loopback means the container reaches the
-host only via the host LAN IP, not 127.0.0.1/docker0. The real services bind
-127.0.0.1, so we listen on the LAN IP (:8888/:11434 are free there) and forward
-to loopback. Firecrawl's SEARXNG_ENDPOINT / OLLAMA_BASE_URL already point here.
+host only via the host LAN IP, not 127.0.0.1/docker0.
 
-STOP THIS before `sudo nixos-rebuild switch` (which moves the real services to
-0.0.0.0):  pkill -f firecrawl-relay.py
-After the rebuild the real services own 0.0.0.0:8888/11434 and this is unused.
+SearXNG now binds 0.0.0.0:8888 directly (see system/searx.nix), so Firecrawl
+reaches it via host.docker.internal:8888 and the relay no longer forwards :8888
+-- forwarding it would collide with SearXNG's 0.0.0.0 bind and fail the service.
+
+Ollama binds *:11434, so the relay forwards a DISTINCT LAN port (11435) ->
+127.0.0.1:11434 to still rewrite /chat -> /api/chat for Firecrawl's AI SDK.
 """
 import re
 import socket, threading, time
 
 LAN = "192.168.50.13"
-# SearXNG still binds 127.0.0.1:8888, so the relay owns :8888 on the LAN.
-# Ollama now binds *:11434 (after nixos-rebuild), so the relay forwards a
-# DISTINCT LAN port (11435) -> 127.0.0.1:11434 to avoid the bind conflict
-# and still rewrite /chat -> /api/chat for Firecrawl's AI SDK.
-PAIRS = [(8888, "127.0.0.1", 8888), (11435, "127.0.0.1", 11434)]
+# SearXNG owns 0.0.0.0:8888 now; only Ollama needs the LAN relay (11435->11434).
+PAIRS = [(11435, "127.0.0.1", 11434)]
 
 
 def relay(src, dst):
