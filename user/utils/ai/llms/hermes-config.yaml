@@ -1,6 +1,6 @@
 model:
   provider: nous
-  default: deepseek/deepseek-v4-flash
+  default: deepseek/deepseek-v4-flash-0731
   # base_url intentionally omitted: the `nous` provider resolves its
   # inference endpoint from auth state / the default Portal URL. Leaving the
   # stale localhost:11434 base_url would override it.
@@ -9,12 +9,13 @@ model:
   context_length: 1048576
 
 agent:
-  reasoning_effort: max
+  reasoning_effort: medium
   tool_use_enforcement:
     - qwen
 
 display:
   show_reasoning: true
+  skin: catppuccin-macchiato
 
 custom_providers:
   - name: Local (localhost:11434)
@@ -40,5 +41,25 @@ web:
 toolsets:
   enabled:
     - browser
+
+# Hindsight memory provider — local-embedded daemon (data stays on this box),
+# LLM calls routed to Nous Portal (OpenAI-compatible). See gbrain.nix for the
+# venv PYTHONPATH, the hindsight/config.json symlink, and the activation hook
+# that refreshes the rotating Nous key into ~/.hermes/.env.
+#
+# Only ONE external memory provider may be active; this replaces the built-in
+# MEMORY.md store for cross-session recall.
+memory:
+  provider: hindsight
+  hindsight:
+    mode: local_embedded
+    # LLM used by the local Hindsight daemon for extraction/synthesis.
+    llm_provider: openai_compatible
+    llm_base_url: https://inference-api.nousresearch.com/v1
+    # `llm_model` is the model name the daemon sends to the endpoint above.
+    # DeepSeek V4 Flash: cheap, 1M-ctx, tool-capable — good for memory distill.
+    llm_model: deepseek/deepseek-v4-flash
+    recall_budget: mid
+    bank_id: hermes
 
 _config_version: 33

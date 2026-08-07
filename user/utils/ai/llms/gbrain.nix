@@ -91,6 +91,9 @@ in {
 
   home.file.".hermes/config.yaml".source = ./hermes-config.yaml;
 
+  # Catppuccin Macchiato CLI skin (matches system catppuccin flavor/accent).
+  home.file.".hermes/skins/catppuccin-macchiato.yaml".source = ./catppuccin-macchiato.yaml;
+
   # Hindsight memory provider config (local-embedded → Nous Portal).
   home.file.".hermes/hindsight/config.json".source = ./hindsight-config.json;
 

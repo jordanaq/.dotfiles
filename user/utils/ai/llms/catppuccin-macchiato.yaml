@@ -1,0 +1,33 @@
+name: catppuccin-macchiato
+description: "Catppuccin Macchiato (accent: pink) — matches system catppuccin flavor"
+
+colors:
+  banner_border: "#c6a0f6"                 # mauve
+  banner_title: "#f5bde6"                  # pink (accent)
+  banner_accent: "#c6a0f6"                 # mauve
+  banner_dim: "#a5adcb"                    # subtext0
+  banner_text: "#cad3f5"                   # text
+  ui_accent: "#f5bde6"                     # pink
+  ui_label: "#b7bdf8"                      # lavender
+  ui_ok: "#a6da95"                         # green
+  ui_error: "#ed8796"                      # red
+  ui_warn: "#f5a97f"                       # peach
+  prompt: "#cad3f5"                        # text
+  input_rule: "#494d64"                    # surface1
+  response_border: "#c6a0f6"               # mauve
+  status_bar_bg: "#24273a"                 # base
+  status_bar_text: "#a5adcb"               # subtext0
+  status_bar_strong: "#f5bde6"             # pink
+  status_bar_dim: "#6e738d"                # overlay0
+  status_bar_good: "#a6da95"               # green
+  status_bar_warn: "#eed49f"               # yellow
+  status_bar_bad: "#f5a97f"                # peach
+  status_bar_critical: "#ed8796"           # red
+  session_label: "#b7bdf8"                 # lavender
+  session_border: "#6e738d"                # overlay0
+  selection_bg: "#363a4f"                  # surface0
+  completion_menu_bg: "#24273a"            # base
+  completion_menu_current_bg: "#363a4f"    # surface0
+  completion_menu_meta_bg: "#1e2030"       # mantle
+  completion_menu_meta_current_bg: "#494d64"  # surface1
+  voice_status_bg: "#24273a"               # base
