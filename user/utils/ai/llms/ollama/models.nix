@@ -19,8 +19,9 @@ let
     # Retrieval
     "qwen3-embedding:latest"
 
-    # General local reasoning (stock dense 27B)
+    # General local reasoning
     "qwen3.6:27b"
+    "qwen3.6:35b"
   ];
 
   # Declarative Hugging Face models imported into Ollama at login/startup.
