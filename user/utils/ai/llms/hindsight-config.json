@@ -1,0 +1,8 @@
+{
+  "mode": "local_embedded",
+  "llm_provider": "openai_compatible",
+  "llm_base_url": "https://inference-api.nousresearch.com/v1",
+  "llm_model": "deepseek/deepseek-v4-flash",
+  "recall_budget": "mid",
+  "bank_id": "hermes"
+}

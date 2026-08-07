@@ -10,6 +10,18 @@ let
   gbrainRuntimeDir = "${config.home.homeDirectory}/.local/share/gbrain/runtime";
   gbrainSecretsFile = "${config.home.homeDirectory}/.config/gbrain/secrets.env";
   gbrainAutopilotRepo = "${config.home.homeDirectory}/brain";
+  # Hindsight memory provider (local-embedded daemon) runs from a user venv,
+  # since the Nix-store Hermes package is read-only and cannot pip-install
+  # hindsight-all into its own site-packages. Hermes imports the daemon via
+  # PYTHONPATH; both interactive shells and the gateway service get it below.
+  # hindsight-all pulls in torch/tokenizers which need Nix's libstdc++/zlib on
+  # the linker path (same class of fix as AGENT_BROWSER_EXECUTABLE_PATH).
+  hindsightVenv = "${config.home.homeDirectory}/.local/share/hermes-hindsight-venv";
+  hindsightVenvSitePackages = "${hindsightVenv}/lib/python3.12/site-packages";
+  hindsightLdLibraryPath = lib.makeLibraryPath [
+    pkgs.stdenv.cc.cc
+    pkgs.zlib
+  ];
   gbrainShellPath = lib.makeBinPath [
     pkgs.bun
     pkgs.coreutils
@@ -53,6 +65,11 @@ in {
   home.packages = [
     gbrainPackage
     pkgs.python3Packages.huggingface-hub
+    # uv/uvx: needed by Hindsight's local-embedded daemon which launches via
+    # `uvx hindsight-api@<version> --daemon`. Installed in the user profile so
+    # both interactive shells and the gateway service (which inherits
+    # ~/.nix-profile/bin on PATH) can find uvx.
+    pkgs.uv
     # Browser automation backend for Hermes' `browser` toolset.
     # `chromium` provides the Nix-wrapped browser binary so agent-browser
     # doesn't have to dynamically load generic-Linux shared libraries that
@@ -68,7 +85,14 @@ in {
   home.sessionVariables.AGENT_BROWSER_EXECUTABLE_PATH =
     "${pkgs.chromium}/bin/chromium";
 
+  # hindsight-all (torch/tokenizers) needs Nix's libstdc++/zlib on the linker
+  # path so Hermes can import the local-embedded memory daemon on NixOS.
+  home.sessionVariables.LD_LIBRARY_PATH = "${hindsightLdLibraryPath}";
+
   home.file.".hermes/config.yaml".source = ./hermes-config.yaml;
+
+  # Hindsight memory provider config (local-embedded → Nous Portal).
+  home.file.".hermes/hindsight/config.json".source = ./hindsight-config.json;
 
   systemd.user.services.hermes-gateway = {
     Unit = {
@@ -94,6 +118,12 @@ in {
         # interactive shells but NOT to systemd user services, so we set
         # it here explicitly.
         "AGENT_BROWSER_EXECUTABLE_PATH=${pkgs.chromium}/bin/chromium"
+        # Let the read-only Hermes store import the user-venv's
+        # hindsight-all for the local-embedded memory daemon.
+        "PYTHONPATH=${hindsightVenvSitePackages}"
+        # hindsight-all (torch/tokenizers) needs Nix's libstdc++/zlib on the
+        # linker path to import on NixOS.
+        "LD_LIBRARY_PATH=${hindsightLdLibraryPath}"
       ];
     };
 
