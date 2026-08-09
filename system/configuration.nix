@@ -135,6 +135,8 @@ in {
     server.port = 6742; 
   };
 
+  services.power-profiles-daemon.enable = true;
+
   services.xserver = {
     enable = true;
     desktopManager.xfce.enable = true;
