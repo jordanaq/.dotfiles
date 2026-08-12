@@ -32,23 +32,10 @@ let
       -f ${lib.escapeShellArg composeFile} down
   '';
 
-  # Relay launcher: forwards the host LAN IP (:8888/:11434) to the real
-  # 127.0.0.1 services so the Firecrawl container can reach them under
-  # rootless Docker (--disable-host-loopback). It also rewrites Ollama's
-  # /chat -> /api/chat path, which Firecrawl's AI SDK omits.
-  relayUp = pkgs.writeShellScript "firecrawl-relay-up" ''
-    exec ${lib.getExe pkgs.python3} ${lib.escapeShellArg cfgDir}/relay.py
-  '';
 in {
   # Committed compose (no secrets — uses ${...} interpolation).
   home.file.".config/firecrawl/docker-compose.yaml".source =
     ./firecrawl/docker-compose.yaml;
-
-  # Committed TCP relay that lets the Firecrawl container reach host services
-  # bound to 127.0.0.1 (SearXNG/Ollama) via the host LAN IP. Managed as a
-  # systemd user unit (firecrawl-relay.service) below.
-  home.file.".config/firecrawl/relay.py".source =
-    ./firecrawl/relay.py;
 
   # Generate secrets once; never overwrite an existing file (so a
   # `home-manager switch` does not rotate live credentials).
@@ -61,11 +48,6 @@ in {
       pg=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
       rbmq=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
       bull=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')
-      # Under rootless Docker with --disable-host-loopback, containers reach
-      # host-bound services via the host's LAN IP, not host.docker.internal /
-      # the docker0 bridge. Resolve it once at activation time.
-      host_ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet/{print $2}' | head -1 | cut -d/ -f1)
-      [ -z "$host_ip" ] && host_ip=127.0.0.1
       printf '%s\n' \
         "PORT=3002" \
         "INTERNAL_PORT=3002" \
@@ -80,19 +62,19 @@ in {
         "ALLOW_LOCAL_WEBHOOKS=false" \
         "MAX_CPU=0.8" \
         "MAX_RAM=0.8" \
-        # Local Ollama (bound 0.0.0.0) is reachable directly, but Firecrawl's
-        # AI SDK posts to /chat (Ollama needs /api/chat). The relay owns a
-        # distinct LAN port (11435 -> 127.0.0.1:11434) to rewrite the path.
-        OLLAMA_BASE_URL=http://$host_ip:11435
-        "MODEL_PROVIDER=ollama" \
-        "MODEL_NAME=qwen3.6:35b-a3b" \
-        "MODEL_EMBEDDING_NAME=qwen3-embedding:latest" \
-        # Firecrawl hardcodes provider="openai" for its extract/summary/query
-        # paths, so OLLAMA_BASE_URL alone is ignored for those. Ollama 0.30.5
-        # serves the OpenAI-compatible /v1/responses + /v1/chat/completions
-        # natively, so point the openai provider straight at it.
-        "OPENAI_BASE_URL=http://$host_ip:11434/v1" \
-        "OPENAI_API_KEY=ollama" \
+        # LLM via the Nous Portal (OpenAI-compatible inference API). Firecrawl
+        # hardcodes provider="openai" for its extract/summary/query paths, so the
+        # LLM rides on OPENAI_BASE_URL. OPENAI_API_KEY is a SECRET: leave it
+        # empty here, then set it in this generated .env (chmod 600, git-ignored)
+        # after first activation. Home-manager never overwrites an existing .env.
+        "MODEL_PROVIDER=openai" \
+        # Rolling deepseek-v4-flash (NOT the -0731 snapshot): the 0731 snapshot
+        # is served by Novita and rejects structured output, which Firecrawl's
+        # LLM extraction requires. The rolling alias supports it (2026-08-12).
+        "MODEL_NAME=deepseek/deepseek-v4-flash" \
+        "MODEL_EMBEDDING_NAME=google/gemini-embedding-2" \
+        "OPENAI_BASE_URL=https://inference-api.nousresearch.com/v1" \
+        "OPENAI_API_KEY=" \
         > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi
@@ -117,28 +99,6 @@ in {
         "HOME=${config.home.homeDirectory}"
         "DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock"
       ];
-    };
-
-    Install.WantedBy = [ "default.target" ];
-  };
-
-  # TCP relay (LAN IP -> 127.0.0.1) so Firecrawl reaches SearXNG/Ollama.
-  # Lifecycle-bound to the Firecrawl stack.
-  systemd.user.services.firecrawl-relay = {
-    Unit = {
-      Description = "Firecrawl host-service relay (rootless Docker)";
-      After = [ "firecrawl.service" "docker.service" "network-online.target" ];
-      Requires = [ "firecrawl.service" ];
-      PartOf = [ "firecrawl.service" ];
-    };
-
-    Service = {
-      Type = "simple";
-      ExecStart = relayUp;
-      Restart = "on-failure";
-      RestartSec = 5;
-      WorkingDirectory = cfgDir;
-      Environment = [ "HOME=${config.home.homeDirectory}" ];
     };
 
     Install.WantedBy = [ "default.target" ];
