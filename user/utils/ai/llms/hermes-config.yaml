@@ -9,6 +9,13 @@ model:
   context_length: 1048576
 
 agent:
+  # Retries per provider API call on transient errors (5xx incl. 531, rate
+  # limits, connection drops) before the failure surfaces. Default is 3 (4
+  # total attempts). Between attempts Hermes sleeps a jittered exponential
+  # backoff starting at ~2-5s (capped 60-120s), so higher counts just keep
+  # retrying with a few seconds between attempts. Bumped from default 3 for
+  # DeepSeek-v4-flash-0731 upstream 531 resilience (2026-08-10).
+  api_max_retries: 5
   reasoning_effort: medium
   tool_use_enforcement:
     - qwen
@@ -17,10 +24,7 @@ display:
   show_reasoning: true
   skin: catppuccin-macchiato
 
-custom_providers:
-  - name: Local (localhost:11434)
-    base_url: http://localhost:11434/v1/
-    model: qwen3.6:35b-a3b
+custom_providers: []
 
 auxiliary:
   compression:
@@ -57,7 +61,10 @@ memory:
     llm_provider: openai_compatible
     llm_base_url: https://inference-api.nousresearch.com/v1
     # `llm_model` is the model name the daemon sends to the endpoint above.
-    # DeepSeek V4 Flash: cheap, 1M-ctx, tool-capable — good for memory distill.
+    # Rolling deepseek-v4-flash: cheap, 1M-ctx, tool-capable, supports the
+    # structured output the memory-distill path needs. (The -0731 snapshot is
+    # served by Novita and rejects structured output, so stay on the rolling
+    # alias — 2026-08-12.)
     llm_model: deepseek/deepseek-v4-flash
     recall_budget: mid
     bank_id: hermes
