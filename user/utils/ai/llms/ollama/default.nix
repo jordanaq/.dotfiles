@@ -7,7 +7,10 @@
 
 {
   services.ollama = {
-    enable = true;
+    # Disabled 2026-08-12: ollama's ROCm runner shares the RX 9070 XT with
+    # Hyprland and is suspected of triggering the amdgpu gfx-ring hangs that
+    # reset the GPU and crash the compositor. Flip back to `true` to re-enable.
+    enable = false;
     port = 11434;
     # 0.0.0.0 (not 127.0.0.1) so the rootless-Docker Firecrawl containers can
     # reach Ollama via host.docker.internal for local /extract. The NixOS

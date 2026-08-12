@@ -11,7 +11,12 @@ let
   ollama = lib.getExe config.services.ollama.package;
   models = import ./models.nix { inherit config pkgs lib; };
 in {
-  systemd.user.services.ollama-pull-models = {
+  # Only install the pull/import units + timer while the ollama daemon is
+  # enabled. When `services.ollama.enable = false` (e.g. while debugging the
+  # GPU crashes) this returns an empty set so nothing tries to run against a
+  # daemon that isn't up.
+  systemd = lib.mkIf config.services.ollama.enable {
+    user.services.ollama-pull-models = {
     Unit = {
       Description = "Pull Ollama models";
       Requires = [ "ollama.service" ];
@@ -42,7 +47,7 @@ in {
     };
   };
 
-  systemd.user.services.ollama-import-hf-models = {
+  user.services.ollama-import-hf-models = {
     Unit = {
       Description = "Import Hugging Face GGUF models into Ollama";
       Requires = [ "ollama.service" ];
@@ -74,7 +79,7 @@ in {
 
   # Run HF imports shortly after session start and periodically, without
   # blocking `home-manager switch`.
-  systemd.user.timers.ollama-import-hf-models = {
+  user.timers.ollama-import-hf-models = {
     Unit = {
       Description = "Schedule Hugging Face GGUF imports into Ollama";
     };
@@ -89,5 +94,6 @@ in {
     Install = {
       WantedBy = [ "timers.target" ];
     };
+  };
   };
 }
