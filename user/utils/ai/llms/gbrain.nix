@@ -62,6 +62,29 @@ in {
     fi
   '';
 
+  # Editor agents (opencode, Neovim codecompanion, VSCode) get the shared Nous
+  # Portal API key from a git-ignored secrets file, exported into the session
+  # environment via environment.d (read by systemd at login) so both GUI and
+  # terminal tools see `NOUS_API_KEY`. The key value never lands in the dotfiles
+  # repo — only this generation logic does. Populate:
+  #     ~/.config/nous/secrets.env   →   NOUS_API_KEY=<key>
+  # then `home-manager switch` and re-login for environment.d to take effect.
+  home.activation.nousSecretsEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    nous_dir=${config.home.homeDirectory}/.config/nous
+    nous_secrets="$nous_dir/secrets.env"
+    envd=${config.home.homeDirectory}/.config/environment.d
+    mkdir -p "$nous_dir" "$envd"
+    chmod 700 "$nous_dir"
+    if [ -f "$nous_secrets" ]; then
+      chmod 600 "$nous_secrets"
+      key=$(${lib.getExe pkgs.gnused} -n 's/^[[:space:]]*NOUS_API_KEY=[[:space:]]*//p' "$nous_secrets" | head -n1 | tr -d '\r\n')
+      if [ -n "$key" ]; then
+        umask 077
+        printf 'NOUS_API_KEY=%s\n' "$key" > "$envd/10-nous.conf"
+      fi
+    fi
+  '';
+
   home.packages = [
     gbrainPackage
     pkgs.python3Packages.huggingface-hub
