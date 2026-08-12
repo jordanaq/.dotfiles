@@ -10,47 +10,44 @@ require("codecompanion").setup({
     },
   },
   adapters = {
-    http = {
-      ollama = function()
-        return adapters.extend("ollama", {
-          env = {
-            url = "http://127.0.0.1:11434",
+    -- OpenAI-compatible adapter pointed at the Nous Portal inference API.
+    -- The API key is read from the NOUS_API_KEY env var, which is exported
+    -- into the session env from the git-ignored ~/.config/nous/secrets.env
+    -- (see gbrain.nix) — the key never lives in the dotfiles repo.
+    openai = function()
+      return adapters.extend("openai", {
+        env = {
+          url = "https://inference-api.nousresearch.com/v1",
+          api_key_name = "NOUS_API_KEY",
+        },
+        schema = {
+          model = {
+            default = "deepseek/deepseek-v4-flash",
           },
-          schema = {
-            model = {
-              default = "qwen3-coder-next:latest",
-            },
-            choices = {
-              "qwen3-coder-next:latest",
-            },
-            num_ctx = {
-              default = 32768,
-            },
-            temperature = {
-              default = 0.2,
-            },
+          choices = {
+            "deepseek/deepseek-v4-flash",
           },
-        })
-      end,
-    },
+        },
+      })
+    end,
   },
   interactions = {
     chat = {
       adapter = {
-        name = "ollama",
-        model = "qwen3-coder-next:latest",
+        name = "openai",
+        model = "deepseek/deepseek-v4-flash",
       },
     },
     inline = {
       adapter = {
-        name = "ollama",
-        model = "qwen3-coder-next:latest",
+        name = "openai",
+        model = "deepseek/deepseek-v4-flash",
       },
     },
     background = {
       adapter = {
-        name = "ollama",
-        model = "qwen3-coder-next:latest",
+        name = "openai",
+        model = "deepseek/deepseek-v4-flash",
       },
     },
   },
@@ -64,7 +61,7 @@ vim.keymap.set("n", "<leader>aA", function()
     if input and input ~= "" then
       vim.api.nvim_cmd({
         cmd = "CodeCompanionChat",
-        args = { "adapter=ollama", "model=qwen3-coder-next:latest", "@{agent} " .. input },
+        args = { "adapter=openai", "model=deepseek/deepseek-v4-flash", "@{agent} " .. input },
       }, {})
     end
   end)

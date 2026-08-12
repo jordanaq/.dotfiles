@@ -1,27 +1,21 @@
 # OpenCode (editor-side LLM client) configuration.
 #
 # Owns the `programs.opencode` block including the SearXNG websearch tool and
-# the Ollama provider entry. The model list is the subset of Ollama models
-# exposed to the editor client; it must stay in sync with `ollama/models.nix`.
+# the Nous Portal provider entry (OpenAI-compatible, deepseek-v4-flash rolling).
 { lib, ... }:
 
 let
   searxUrl = "http://127.0.0.1:8888/search";
 
-  allOllamaModels = [
-    "qwen3-coder-next:latest"
-    "qwen3-embedding:latest"
-    "qwen3.6:27b"
-    "qwen3.6:35b-a3b"
-    "qwen3.6-abliterated:35b-a3b"
-  ];
-
-  opencodeModelAttrs = builtins.listToAttrs (
-    map (modelName: {
-      name = modelName;
-      value = { };
-    }) allOllamaModels
-  );
+  # Editor LLM via the Nous Portal (OpenAI-compatible inference API). The API
+  # key comes from NOUS_API_KEY, exported into the session env from the
+  # git-ignored ~/.config/nous/secrets.env (see gbrain.nix) — never in dotfiles.
+  # Rolling deepseek-v4-flash (not -0731): the 0731 snapshot is served by
+  # Novita and rejects structured output / tool-call JSON that agentic coding
+  # relies on (2026-08-12).
+  nousModels = {
+    "deepseek/deepseek-v4-flash" = { };
+  };
 in {
   programs.opencode = {
     enable = true;
@@ -82,12 +76,13 @@ in {
       };
 
       "provider" = {
-        "ollama" = {
+        "nous" = {
           "npm" = "@ai-sdk/openai-compatible";
           "options" = {
-            "baseURL" = "http://localhost:11434/v1";
+            "baseURL" = "https://inference-api.nousresearch.com/v1";
+            "apiKey" = "{env:NOUS_API_KEY}";
           };
-          "models" = opencodeModelAttrs;
+          "models" = nousModels;
         };
       };
     };
