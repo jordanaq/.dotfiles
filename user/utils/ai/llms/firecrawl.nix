@@ -44,6 +44,9 @@ in {
   home.activation.firecrawlSecrets = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${lib.escapeShellArg cfgDir}
     chmod 700 ${lib.escapeShellArg cfgDir}
+    # HM activation runs with a minimal PATH; ensure ip (iproute2) and awk
+    # (gawk) are available so host-IP derivation below works.
+    export PATH="${lib.makeBinPath [ pkgs.iproute2 pkgs.gawk ]}:$PATH"
     # Host-derived values (not secrets): resolved fresh on every activation so
     # an IP change self-heals instead of leaving a stale endpoint in .env.
     host_ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet/{print $2}' | head -1 | cut -d/ -f1)
