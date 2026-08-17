@@ -22,10 +22,12 @@
   ];
 
   systemd.user.services.harper-web = {
-    description = "Self-hosted Harper grammar checker web app";
-    wantedBy = [ "default.target" ];
-    unitConfig.After = [ "graphical-session.target" ];
-    serviceConfig = {
+    Unit = {
+      Description = "Self-hosted Harper grammar checker web app";
+      After = [ "graphical-session.target" ];
+    };
+
+    Service = {
       Type = "simple";
       # adapter-node SvelteKit server; HOST=127.0.0.1 keeps it loopback-only.
       Environment = [
@@ -37,5 +39,7 @@
       Restart = "on-failure";
       RestartSec = 3;
     };
+
+    Install.WantedBy = [ "default.target" ];
   };
 }
