@@ -106,5 +106,17 @@
           driversi686Linux.amdvlk
         ];
       };
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
+          rustc
+          cargo
+          wasm-pack
+          just
+          nodejs
+          pnpm
+          perl
+        ];
+      };
     };
 }
