@@ -1,11 +1,13 @@
 model:
   provider: nous
-  default: deepseek/deepseek-v4-flash-0731
+  default: '~deepseek/deepseek-v4-flash-latest'
   # base_url intentionally omitted: the `nous` provider resolves its
   # inference endpoint from auth state / the default Portal URL. Leaving the
   # stale localhost:11434 base_url would override it.
   # DeepSeek-V4 runs a 1,048,576-token context; Think-Max mode needs >= 384K,
-  # so set the full window rather than a low cap.
+  # so set the full window rather than a low cap. Using the portal's dedicated
+  # -latest alias (routes to newest flash weights, structured-output capable,
+  # cheapest tier) instead of the rolling alias (currently 0423 snapshot).
   context_length: 1048576
 
 agent:
@@ -14,7 +16,7 @@ agent:
   # total attempts). Between attempts Hermes sleeps a jittered exponential
   # backoff starting at ~2-5s (capped 60-120s), so higher counts just keep
   # retrying with a few seconds between attempts. Bumped from default 3 for
-  # DeepSeek-v4-flash-0731 upstream 531 resilience (2026-08-10).
+  # DeepSeek-v4-flash upstream 531 resilience (2026-08-10).
   api_max_retries: 5
   reasoning_effort: medium
   tool_use_enforcement:
