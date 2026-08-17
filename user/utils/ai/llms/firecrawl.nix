@@ -44,6 +44,10 @@ in {
   home.activation.firecrawlSecrets = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${lib.escapeShellArg cfgDir}
     chmod 700 ${lib.escapeShellArg cfgDir}
+    # Host-derived values (not secrets): resolved fresh on every activation so
+    # an IP change self-heals instead of leaving a stale endpoint in .env.
+    host_ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet/{print $2}' | head -1 | cut -d/ -f1)
+    [ -z "$host_ip" ] && host_ip=127.0.0.1
     if [ ! -f ${lib.escapeShellArg envFile} ]; then
       pg=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
       rbmq=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
@@ -78,6 +82,10 @@ in {
         > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi
+    # Always refresh the SearXNG endpoint (host-derived) without touching the
+    # once-only secrets above, so a LAN IP change self-heals on next switch.
+    sed -i '/^SEARXNG_ENDPOINT=/d' ${lib.escapeShellArg envFile} 2>/dev/null || true
+    printf 'SEARXNG_ENDPOINT=http://%s:8888\n' "$host_ip" >> ${lib.escapeShellArg envFile}
   '';
 
   systemd.user.services.firecrawl = {
