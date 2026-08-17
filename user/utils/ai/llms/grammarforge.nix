@@ -66,6 +66,24 @@ let
     fetch "https://raw.githubusercontent.com/grammarly/gector/master/data/verb-form-vocab.txt" \
       "$models_dir/gector/verb-form-vocab.txt"
 
+    # FIX (upstream bug): Meyssa/gector-large-2024 ships id2label.json / labels.txt
+    # as SEPARATE files, but hugot's token-classification pipeline requires
+    # id2label IN config.json. The project's fetch-models.sh omits these, so
+    # GECToR fails to load ("id2label map must be greater than zero"). Fetch the
+    # label map and merge it into config.json as the id2label key.
+    fetch "$gector_repo/id2label.json" "$models_dir/gector/id2label.json"
+    if [ -f "$models_dir/gector/config.json" ] && [ -f "$models_dir/gector/id2label.json" ]; then
+      ${pkgs.python3}/bin/python3 - "$models_dir/gector/config.json" "$models_dir/gector/id2label.json" <<'PY'
+import json, sys
+cfg_path, idl_path = sys.argv[1], sys.argv[2]
+cfg = json.load(open(cfg_path))
+idl = json.load(open(idl_path))
+if "id2label" not in cfg or len(cfg.get("id2label", {})) != len(idl):
+    cfg["id2label"] = idl
+    json.dump(cfg, open(cfg_path, "w"), indent=2)
+PY
+    fi
+
     fetch "$minilm_repo/onnx/model.onnx" "$models_dir/minilm/model.onnx"
     for f in tokenizer.json config.json vocab.txt special_tokens_map.json; do
       fetch "$minilm_repo/$f" "$models_dir/minilm/$f"
