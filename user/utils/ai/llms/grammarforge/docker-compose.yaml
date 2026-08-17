@@ -1,0 +1,54 @@
+# GrammarForge bridge — self-hosted grammar checking with LLM escalation.
+#
+# Runs the prebuilt bridge image (ghcr.io/legion-works/grammar-forge-bridge)
+# with GECToR + MiniLM ONNX models mounted in. The slow-path LLM points at a
+# REMOTE OpenAI-compatible endpoint (Nous Portal) via ${...} interpolation
+# from the generated .env — this is an explicit opt-in (the bridge's default
+# is a local llama.cpp, which we are NOT running).
+#
+# The bridge serves its own REST API (/correct, /rephrase, /signal, /health,
+# /stats) AND the LanguageTool wire protocol natively (/v2/check, /v2/languages).
+#
+# No secrets in this file. GF_LLM_API_KEY is injected from .env.
+name: grammarforge
+
+services:
+  bridge:
+    image: ghcr.io/legion-works/grammar-forge-bridge:0.2.0
+    container_name: grammarforge-bridge
+    volumes:
+      - ./data:/data
+      - ./models/gector:/models/gector:ro
+      - ./models/minilm:/models/minilm:ro
+    environment:
+      GF_REST_ADDR: ":8000"
+      GF_GRPC_ADDR: ":8082"
+      # Slow-path LLM → Nous Portal (OpenAI-compatible inference API).
+      # These resolve from .env at `docker compose up`.
+      GF_LLM_BASE_URL: "${GF_LLM_BASE_URL}"
+      GF_LLM_MODEL: "${GF_LLM_MODEL}"
+      GF_LLM_FORMAT: "${GF_LLM_FORMAT}"
+      GF_LLM_API_KEY: "${GF_LLM_API_KEY}"
+      # Fast path (in-process): GECToR structural grammar + Harper (baked in).
+      GF_GECTOR_MODEL_DIR: "/models/gector"
+      GF_HARPER_ENABLED: "true"
+      GF_HARPER_MARKDOWN: "true"
+      GF_HARPER_DIALECT: "american"
+      # SQLite correction log + user dictionary (host volume, gitignored).
+      GF_DB_PATH: "/data/corrections.db"
+      GF_HARPER_USER_DICT: "/data/user-dict.txt"
+      # Escalation policy: escalate when fast-path confidence < 0.7, or long
+      # sentences, or >= 3 words with no fast-path hit (LLM catches confusables).
+      GF_ESCALATE_MIN_CONFIDENCE: "0.7"
+      GF_ESCALATE_MAX_SENTENCE_LEN: "200"
+      GF_ESCALATE_MIN_WORDS: "3"
+      # Keep text local by default; remote LLM only sees the sentence being
+      # checked (no ±1 neighboring-sentence context sent off-host).
+      GF_LLM_SENTENCE_CONTEXT: "false"
+      # Personalisation (accept/reject few-shots) — on, reads local SQLite.
+      GF_PERSONALIZATION_ENABLED: "true"
+      GF_LOG_LEVEL: "info"
+    ports:
+      - "127.0.0.1:8000:8000"  # REST + native /v2/check
+      - "127.0.0.1:8082:8082"  # gRPC (LT RemoteRule; optional)
+    restart: unless-stopped

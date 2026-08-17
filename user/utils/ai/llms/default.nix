@@ -19,6 +19,7 @@
     ./gbrain.nix
     ./hermes.nix
     ./firecrawl.nix
+    ./grammarforge.nix
     ./opencode.nix
   ];
 }
