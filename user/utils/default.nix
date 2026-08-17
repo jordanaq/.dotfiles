@@ -8,6 +8,7 @@
     ./flatpak
     ./git
     ./graphics
+    ./harper-web
     ./keepass
     ./kitty
     ./misc

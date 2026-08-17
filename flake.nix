@@ -116,6 +116,7 @@
           nodejs
           pnpm
           perl
+          lld
         ];
       };
     };

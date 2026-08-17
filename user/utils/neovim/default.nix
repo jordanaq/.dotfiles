@@ -28,7 +28,6 @@
       # Language servers
       bash-language-server
       clang-tools
-      harper
       haskell-language-server
       (julia.withPackages [
         "LanguageServer"
