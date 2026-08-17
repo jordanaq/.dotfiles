@@ -10,7 +10,8 @@
 #
 # Note: the web app is a SvelteKit build using @sveltejs/adapter-node, so the
 # build output is a Node server (build/index.js), NOT plain static files.
-# Rebuild: cd ~/src/harper && nix develop ~/.dotfiles --command just build-web
+# The ~/src/harper checkout tracks `master`.
+# Rebuild: cd ~/src/harper && git pull --rebase && nix develop ~/.dotfiles --command just build-web
 
 { pkgs, ... }:
 
