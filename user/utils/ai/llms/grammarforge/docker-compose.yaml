@@ -14,7 +14,11 @@ name: grammarforge
 
 services:
   bridge:
-    image: ghcr.io/legion-works/grammar-forge-bridge:0.2.0
+    # Local build with annotated-`data` support (feat: ltcompat 'data'). The
+    # stock ghcr.io/legion-works/grammar-forge-bridge:0.2.0 rejects annotated
+    # requests, which the Obsidian LT plugin always sends.
+    image: grammar-forge-bridge:annotated-data
+    build: /home/tsiru/src/grammar-forge/bridge
     container_name: grammarforge-bridge
     volumes:
       - ./data:/data
