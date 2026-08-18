@@ -21,6 +21,7 @@
     # Packages
     packages = with pkgs; [
       eza
+      sqlite
     ];
 
     sessionVariables = {
