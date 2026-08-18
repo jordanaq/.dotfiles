@@ -43,9 +43,13 @@ services:
       GF_HARPER_USER_DICT: "/data/user-dict.txt"
       # Escalation policy: escalate when fast-path confidence < 0.7, or long
       # sentences, or >= 3 words with no fast-path hit (LLM catches confusables).
-      GF_ESCALATE_MIN_CONFIDENCE: "0.7"
-      GF_ESCALATE_MAX_SENTENCE_LEN: "200"
-      GF_ESCALATE_MIN_WORDS: "3"
+      # Escalation policy — sourced from .env (set there to tune). These
+      # control when the slow-path LLM runs; the defaults (confidence 0.7,
+      # sentence len 200, min words 3, escalate-on-fast-edit on) match upstream.
+      GF_ESCALATE_MIN_CONFIDENCE: "${GF_ESCALATE_MIN_CONFIDENCE:-0.7}"
+      GF_ESCALATE_MAX_SENTENCE_LEN: "${GF_ESCALATE_MAX_SENTENCE_LEN:-200}"
+      GF_ESCALATE_MIN_WORDS: "${GF_ESCALATE_MIN_WORDS:-3}"
+      GF_ESCALATE_ON_FAST_EDIT: "${GF_ESCALATE_ON_FAST_EDIT:-true}"
       # Keep text local by default; remote LLM only sees the sentence being
       # checked (no ±1 neighboring-sentence context sent off-host).
       GF_LLM_SENTENCE_CONTEXT: "false"
