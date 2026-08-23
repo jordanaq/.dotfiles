@@ -11,16 +11,24 @@ let
   envFile = "${cfgDir}/.env";
   composeFile = "${cfgDir}/docker-compose.yaml";
   # rootless docker-compose shells out to `docker`, so both must be on PATH.
-  dockerPath = lib.makeBinPath [ pkgs.docker pkgs.docker-compose ];
+  # curl is needed by the watchdog probe.
+  dockerPath = lib.makeBinPath [ pkgs.docker pkgs.docker-compose pkgs.curl ];
 
   # `docker compose` talks to the rootless daemon socket explicitly.
+  # Rootless-Docker custom bridges die silently (stale veth/gateway -> dead DNS,
+  # no NAT out). `docker compose up` won't recreate already-running containers,
+  # so always tear down + rebuild with --force-recreate. `down` keeps named
+  # volumes (no -v), so data is safe.
   up = pkgs.writeShellScript "firecrawl-up" ''
     set -euo pipefail
     export PATH="${dockerPath}:$PATH"
     export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
+    ${lib.getExe pkgs.docker-compose} \
+      --env-file ${lib.escapeShellArg envFile} \
+      -f ${lib.escapeShellArg composeFile} down || true
     exec ${lib.getExe pkgs.docker-compose} \
       --env-file ${lib.escapeShellArg envFile} \
-      -f ${lib.escapeShellArg composeFile} up
+      -f ${lib.escapeShellArg composeFile} up --force-recreate
   '';
 
   down = pkgs.writeShellScript "firecrawl-down" ''
@@ -30,6 +38,22 @@ let
     ${lib.getExe pkgs.docker-compose} \
       --env-file ${lib.escapeShellArg envFile} \
       -f ${lib.escapeShellArg composeFile} down
+  '';
+
+  # Watchdog: if the API is listening but the container can no longer resolve
+  # public DNS, the Docker bridge is dead (the incident we hit) -> restart the
+  # unit, whose `up` now tears down and rebuilds the network. Only fires on a
+  # live-but-broken stack; the main unit owns startup when the API is down.
+  watchdog = pkgs.writeShellScript "firecrawl-watchdog" ''
+    set -euo pipefail
+    export PATH="${dockerPath}:$PATH"
+    export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
+    if ! ${lib.getExe pkgs.curl} -sf -m 5 http://localhost:3002/ >/dev/null 2>&1; then
+      exit 0
+    fi
+    if ! docker exec firecrawl-api-1 getent hosts en.wikipedia.org >/dev/null 2>&1; then
+      systemctl --user restart firecrawl.service
+    fi
   '';
 
 in {
@@ -113,5 +137,19 @@ in {
     };
 
     Install.WantedBy = [ "default.target" ];
+  };
+
+  # Watchdog timer: every 5 min, if the API is up but the container's DNS is
+  # dead (dead Docker bridge), restart firecrawl.service to rebuild the network.
+  systemd.user.services.firecrawl-watchdog = {
+    Unit.Description = "Restart firecrawl if its Docker bridge/DNS dies";
+    Service = { Type = "oneshot"; ExecStart = watchdog; };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  systemd.user.timers.firecrawl-watchdog = {
+    Unit.Description = "Periodic firecrawl bridge/DNS watchdog";
+    Timer = { OnBootSec = "2min"; OnUnitActiveSec = "5min"; };
+    Install.WantedBy = [ "timers.target" ];
   };
 }
