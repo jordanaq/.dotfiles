@@ -75,6 +75,7 @@ x-common-env: &common-env
 services:
   playwright-service:
     image: ghcr.io/firecrawl/playwright-service:latest
+    restart: unless-stopped
     environment:
       PORT: 3000
       PROXY_SERVER: ${PROXY_SERVER:-}
@@ -99,6 +100,12 @@ services:
 
   api:
     <<: *common-service
+    # Docker daemon auto-restarts a crashed api container in place (the layer
+    # that actually observes the container exit). The systemd unit + watchdog
+    # cannot catch this: `firecrawl.service` runs compose in the foreground, so
+    # it stays alive while the api's healthy siblings (postgres/redis/rabbitmq)
+    # keep running — a crashed api alone never trips `Restart=on-failure`.
+    restart: unless-stopped
     environment:
       <<: *common-env
       EXTRACT_WORKER_PORT: ${EXTRACT_WORKER_PORT:-3004}
@@ -130,6 +137,7 @@ services:
 
   redis:
     image: redis:alpine
+    restart: unless-stopped
     networks:
       - backend
     volumes:
@@ -147,6 +155,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    restart: unless-stopped
     networks:
       - backend
     volumes:
@@ -173,6 +182,7 @@ services:
   nuq-postgres:
     image: ghcr.io/firecrawl/nuq-postgres:latest
     # Sets cron.database_name before initdb so pg_cron installs into the right DB.
+    restart: unless-stopped
     command: postgres -c cron.database_name=${POSTGRES_DB:-firecrawl}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-firecrawl}
