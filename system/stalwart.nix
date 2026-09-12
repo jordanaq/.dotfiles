@@ -142,9 +142,11 @@ in
       objects = {
         # The local domain. dnsManagement stays MANUAL — Spaceship is the DNS
         # authority, so records are published by hand. dkimManagement is
-        # AUTOMATIC: Stalwart generates and rotates its own key and signs
-        # outbound; copy the record it reports (Settings › Domains › tsiru.pet)
-        # into Spaceship.
+        # AUTOMATIC, RSA-only: Stalwart generates and rotates the key and signs
+        # outbound; copy the record it reports (Settings › Domains › DKIM
+        # Signatures) into Spaceship. Ed25519 is deliberately NOT enabled —
+        # Proton and Gmail do not support ed25519-sha256 (RFC 8463) and log a
+        # permerror for every message that carries one.
         Domain = {
           reconcile = false;
           match = [ "name" ];
@@ -152,7 +154,10 @@ in
             main = {
               name = domain;
               certificateManagement = { "@type" = "Manual"; };
-              dkimManagement = { "@type" = "Automatic"; };
+              dkimManagement = {
+                "@type" = "Automatic";
+                algorithms = [ "Dkim1RsaSha256" ];
+              };
               dnsManagement = { "@type" = "Manual"; };
             };
           };
