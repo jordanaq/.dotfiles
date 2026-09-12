@@ -86,13 +86,13 @@ in
         submissions = {
           protocol = "smtp";
           bind = [ "0.0.0.0:465" ];
-          tls-implicit = true;
+          tls.implicit = true;
         };
         # 993 — IMAPS
         imap = {
           protocol = "imap";
           bind = [ "0.0.0.0:993" ];
-          tls-implicit = true;
+          tls.implicit = true;
         };
         # 4190 — ManageSieve (Bulwark's filter UI + clients)
         sieve = {
@@ -108,18 +108,33 @@ in
       };
 
       # Local mail stays local; everything else goes out through the relay.
-      queue.strategy.route = "if is_local_domain(rcpt_domain) { 'local' } else { 'scaleway' }";
+      # Written with the `if_then(cond, a, b)` function as a plain expression
+      # STRING. Notes, both learned the hard way against 0.15.5:
+      #   * the {match:{...},else:...} object form does NOT survive this module's
+      #     TOML encoding — Stalwart rejects it ("...route.else found in 'if'
+      #     block") and then silently falls back to the default `mx` route
+      #     (direct delivery, which Linode blocks);
+      #   * `is_local_domain` in this build wants TWO arguments, so compare the
+      #     recipient domain directly instead.
+      queue.strategy.route = "if_then(rcpt_domain == '${domain}', 'local', 'scaleway')";
 
       # Scaleway Transactional Email smarthost.
-      # 2465 = implicit TLS; chosen over 587/465 precisely because Linode
-      # blocks those outbound ports on this account.
+      # MtaRoute is a TAGGED enum, so the variant is selected with "@type" =
+      # "Relay" (a bare `type = "relay"` is silently not a route at all), and
+      # the fields are camelCase per the schema. authSecret is a tagged secret
+      # object, not a plain string. 2465 = implicit TLS; chosen over 587/465
+      # precisely because Linode blocks those outbound ports on this account.
       route."scaleway" = {
-        type = "relay";
+        "@type" = "Relay";
         address = "smtp.tem.scaleway.com";
         port = 2465;
-        implicit-tls = true;
-        auth-username = "%{file:${scalewayUserFile}}%";
-        auth-secret = "%{file:${scalewayPassFile}}%";
+        protocol = "smtp";
+        implicitTls = true;
+        authUsername = "%{file:${scalewayUserFile}}%";
+        authSecret = {
+          "@type" = "File";
+          filePath = scalewayPassFile;
+        };
       };
     };
   };
