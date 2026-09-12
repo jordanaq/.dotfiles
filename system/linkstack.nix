@@ -110,6 +110,19 @@ in
       "listen.group" = group;
       "listen.mode" = "0660";
 
+      # LinkStack resolves a handful of paths RELATIVE to the process working
+      # directory rather than through Laravel's base_path(): the admin config
+      # editor reads `file_get_contents('config/advanced-config.php')` and
+      # AdminController::editAC writes `file_put_contents('config/advanced-config.php')`.
+      # php-fpm runs with cwd `/` unless told otherwise — the systemd unit the
+      # module generates sets no WorkingDirectory, and the pool conf it emits
+      # carries no `chdir` — so those relative opens resolve against `/` and the
+      # editor 500s with `Failed to open stream: No such file or directory`
+      # even though config/advanced-config.php exists at the app root.
+      # Pin the pool's working directory to the docroot, which is how LinkStack
+      # is run under Apache/nginx shared hosting (cwd == app root).
+      "chdir" = dataDir;
+
       "pm" = "dynamic";
       "pm.max_children" = 8;
       "pm.start_servers" = 2;
