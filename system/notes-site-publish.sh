@@ -53,6 +53,22 @@ sync_vault() {
   fi
 }
 
+# Obsidian inline snippets (Templater/Dataview) cannot be evaluated by Quartz,
+# so they land in the page as literal code. 100 notes carry exactly:
+#   Last Modified: `=dateformat(this.file.mtime, "DDDD, HH:mm")`
+# Substitute each note's real last-commit date. Runs on the BUILD CLONE only.
+render_dates() {
+  local f rel when
+  while IFS= read -r -d '' f; do
+    grep -q 'this\.file\.mtime' "$f" 2>/dev/null || continue
+    rel="${f#"$BUILD/vault/"}"
+    # Commit date is the meaningful "last modified"; a fresh clone's mtime is not.
+    when="$(git -C "$BUILD/vault" log -1 --format=%cs -- "$rel" 2>/dev/null || true)"
+    [ -n "$when" ] || when="$(date -r "$f" +%F 2>/dev/null || date +%F)"
+    sed -i "/this\.file\.mtime/{s|.*|Last Modified: $when|}" "$f"
+  done < <(find "$BUILD/vault/$VAULT_SUBDIR" -name '*.md' -print0)
+}
+
 mkdir -p "$BUILD" "$DOCROOT"
 stage_quartz
 sync_vault
@@ -61,11 +77,15 @@ rev="$(git -C "$BUILD/vault" rev-parse HEAD)"
 
 # The injected landing page is part of what gets published, so its content has
 # to be part of the change key — otherwise editing it would never republish.
+# The publisher's OWN hash is in the key for the same reason: a change to the
+# rendering logic below (date substitution, etc.) must reach the site even when
+# neither the vault nor the landing page moved.
 index_sum=""
 if [ -n "$INDEX_MD" ] && [ -f "$INDEX_MD" ]; then
   index_sum="$(sha256sum "$INDEX_MD" | cut -d' ' -f1)"
 fi
-key="$rev:$index_sum"
+script_sum="$(sha256sum "${BASH_SOURCE[0]:-$0}" | cut -d' ' -f1)"
+key="$rev:$index_sum:$script_sum"
 
 if [ -f "$BUILD/published.rev" ] && [ "$(cat "$BUILD/published.rev")" = "$key" ]; then
   exit 0 # nothing to publish since the last run
@@ -76,6 +96,10 @@ fi
 if [ -n "$index_sum" ] && [ ! -f "$BUILD/vault/$VAULT_SUBDIR/index.md" ]; then
   cp "$INDEX_MD" "$BUILD/vault/$VAULT_SUBDIR/index.md"
 fi
+
+# Rewrite the Obsidian inline-snippet lines (clone only; sync_vault resets them
+# to the vault's bytes on the next run, so this stays idempotent).
+render_dates
 
 cd "$BUILD/quartz"
 [ -d node_modules ] || npm ci --no-audit --no-fund
