@@ -160,6 +160,21 @@ in
       if [ ! -e ${dataDir}/.env ]; then
         install -m 0640 ${linkstack}/.env ${dataDir}/.env
       fi
+
+      # Generate the application encryption key on first run. Laravel throws
+      # MissingAppKeyException from the HTTP middleware pipeline BEFORE the
+      # installer route is reached, so the app cannot self-install without it.
+      #
+      # Written directly rather than via `artisan key:generate`: the console
+      # kernel boots service providers (Livewire) that resolve the encrypter,
+      # so artisan dies with the same exception it is meant to fix. Format is
+      # Laravel's own: base64: + 32 random bytes.
+      # NOTE: base64 -w0 emits no trailing newline, and the shell variable
+      # reference below is Nix-escaped — both deliberate, not typos.
+      if ! grep -q '^APP_KEY=base64:' ${dataDir}/.env; then
+        key="base64:$(${pkgs.coreutils}/bin/head -c 32 /dev/urandom | ${pkgs.coreutils}/bin/base64 -w0)"
+        ${pkgs.gnused}/bin/sed -i "s|^APP_KEY=.*|APP_KEY=''${key}|" ${dataDir}/.env
+      fi
     '';
   };
 

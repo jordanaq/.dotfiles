@@ -99,8 +99,10 @@ Keep the two in sync.
 - **Upgrading:** bump `version` (and the `hash`) in `system/linkstack.nix`; the
   setup unit re-runs automatically. Compute a new hash with
   `nix store prefetch-file <release-url>`.
-- **First run:** visit `https://links.tsiru.pet` — the browser installer runs
-  (creates the admin account + SQLite DB). No secret file is needed up front.
+- **First run:** `linkstack-setup` seeds `.env` and generates the Laravel
+  `APP_KEY` (required — the app 500s without it). Then visit
+  `https://links.tsiru.pet` — the browser installer creates the admin account
+  and SQLite DB. No secret file is needed up front.
 
 ## Personal site (tsiru.pet)
 
