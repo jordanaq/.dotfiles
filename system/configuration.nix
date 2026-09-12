@@ -77,13 +77,20 @@ in {
       tempAddress = "disabled";
     };
 
-    # Default deny. Public web traffic only via Caddy:
-    #   80  → ACME HTTP-01 challenge
-    #   443 → HTTPS (Caddy-terminated TLS)
-    #   22  → SSH
+    # Default deny. Public traffic is only Caddy's web ports plus the mail
+    # ports Stalwart listens on. TCP only — mail uses no UDP, and ICMP/ping is
+    # governed separately (allowPing, default true).
+    #   22   → SSH
+    #   80   → ACME HTTP-01 challenge (Caddy)
+    #   443  → HTTPS (Caddy-terminated TLS: web, webmail, admin, JMAP/CalDAV)
+    #   25   → SMTP (inbound mail from other servers)
+    #   465  → SMTP submission (implicit TLS)
+    #   587  → SMTP submission (STARTTLS)
+    #   993  → IMAPS (implicit TLS)
+    #   4190 → ManageSieve (Sieve filter management)
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 80 443 ];
+      allowedTCPPorts = [ 22 80 443 25 465 587 993 4190 ];
     };
   };
 
