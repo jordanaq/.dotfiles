@@ -116,6 +116,10 @@ in
       singletons = {
         SystemSettings = {
           defaultHostname = mailHost;
+          # #main = the Domain object key below; the Lua sorter orders the
+          # plan so the domain upsert lands before this update. Required
+          # field — without it apply fails with `defaultDomainId: required`.
+          defaultDomainId = "#main";
         };
         # Local domain stays local, everything else → the Scaleway relay
         # (MtaRoute 'scaleway' below). Same logic as 0.15's
