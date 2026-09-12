@@ -73,6 +73,12 @@ in
       # the box with:   nix run nixpkgs#mkpasswd -- -m sha-512
       # The file must exist and be readable by the `stalwart` user BEFORE the
       # rebuild, or the macro fails and the service will not start.
+      #
+      # !! NO TRAILING NEWLINE !! The macro substitutes the file's bytes
+      # verbatim, so a trailing \n makes the stored secret "$6$...\n" and every
+      # login fails with "Incorrect username or password" while the server logs
+      # nothing at all. Use printf '%s' (NOT echo/tee-of-a-line) and check with
+      # `wc -l` == 0.
       authentication."fallback-admin" = {
         user = "admin";
         secret = "%{file:/etc/secrets/stalwart-admin.hash}%";
