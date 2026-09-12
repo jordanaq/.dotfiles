@@ -25,6 +25,8 @@ in {
     ./stalwart.nix
     ./bulwark.nix
     ./fail2ban.nix
+    ./tailscale.nix
+    ./uptime-kuma.nix
   ];
 
   # --- Boot ---------------------------------------------------------------
