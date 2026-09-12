@@ -1,123 +1,37 @@
 {
-  description = "Entrypoint flake";
+  description = "tsiru-cloud — server-only fork of ~/.dotfiles (branch: server)";
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
-
-    comfyui-nix = {
-      url = "github:utensils/comfyui-nix";
-    };
 
     home-manager = {
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    gbrain-src = {
-      url = "github:garrytan/gbrain";
-      flake = false;
-    };
-
-    hermes-agent.url = "github:NousResearch/hermes-agent";
-
-    catppuccin.url = "github:catppuccin/nix";
-
-    firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprland.url = "github:hyprwm/Hyprland";
-    hyprland-plugins = {
-      url = "github:/hyprwm/hyprland-plugins";
-      inputs.hyprland.follows = "hyprland";
-    };
-
-    nixvirt = {
-      url = "https://flakehub.com/f/AshleyYakeley/NixVirt/*.tar.gz";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, nixvirt, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, ... }@inputs:
     let
-      lib = nixpkgs.lib;
       system = "x86_64-linux";
-      hyprland = import hyprland;
       pkgs = import nixpkgs {
         inherit system;
-        config = {
-          allowUnfree = true;
-          rocmSupport = true;
-        };
+        config.allowUnfree = true; # rocmSupport intentionally NOT set (no GPU)
       };
-      pkgs-unstable = hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
     in {
-      nixosConfigurations = {
-        tsiru-nixos = lib.nixosSystem {
-          inherit system;
-
-          specialArgs = { inherit inputs; };
-
-          modules = [
-            ./system/configuration.nix
-            ./system/audio/default.nix
-            (nixvirt.nixosModules.default)
-
-            home-manager.nixosModules.home-manager {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-            }
-          ];
-        };
-      };
-
-      homeConfigurations = {
-        tsiru = home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-
-          modules = [
-            ./user/home.nix
-            catppuccin.homeModules.catppuccin
-            (nixvirt.homeModules.default)
-          ];
-
-          extraSpecialArgs = {
-            inherit inputs;
-            inherit system;
-          };
-        };
-      };
-
-      hardware.opengl = {
-        package = pkgs-unstable.mesa.drivers;
-        driSupport32Bit = true;
-        package32 = pkgs-unstable.pkgsi686Linux.mesa.drivers;
-        extraPackages = with pkgs; [
-          amdvlk
-        ];
-        extraPackages32 = with pkgs; [
-          driversi686Linux.amdvlk
+      nixosConfigurations.tsiru-cloud = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./system/configuration.nix
         ];
       };
 
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-          rustc
-          cargo
-          wasm-pack
-          just
-          nodejs
-          pnpm
-          perl
-          lld
+      homeConfigurations.tsiru = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          ./user/home.nix
         ];
+        extraSpecialArgs = { inherit inputs; inherit system; };
       };
     };
 }
