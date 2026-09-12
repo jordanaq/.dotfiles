@@ -6,12 +6,13 @@
 # ~/Documents/Obsidian-Vault.git on this host — so the build needs no network
 # credentials at all: clone from that local path, build, publish.
 #
-#   usage: notes-publish <quartz-src> <quartz-config>
+#   usage: notes-publish <quartz-src> <quartz-config> [index-md]
 #     quartz-src    pinned Quartz tree from the flake (read-only store path)
 #     quartz-config this repo's quartz.config.yaml (the source of truth)
-#
-# Skips the expensive part (npm ci + build) unless the vault's HEAD moved, so a
-# 5-minute timer costs one `git fetch` when nothing changed.
+#     index-md      optional landing page for the site root. Concepts/ has no
+#                   index.md of its own, so without this `/` 404s (Quartz emits
+#                   no root index). Injected into the CLONE only — never into
+#                   the vault — and only when the vault doesn't supply its own.
 set -euo pipefail
 
 BUILD="${BUILD:-/var/lib/notes-build}"
@@ -20,8 +21,9 @@ VAULT_REPO="${VAULT_REPO:-/home/tsiru/Documents/Obsidian-Vault.git}"
 VAULT_BRANCH="${VAULT_BRANCH:-main}"
 VAULT_SUBDIR="${VAULT_SUBDIR:-Concepts}"
 
-QUARTZ_SRC="${1:?usage: notes-publish <quartz-src> <quartz-config>}"
-QUARTZ_CFG="${2:?usage: notes-publish <quartz-src> <quartz-config>}"
+QUARTZ_SRC="${1:?usage: notes-publish <quartz-src> <quartz-config> [index-md]}"
+QUARTZ_CFG="${2:?usage: notes-publish <quartz-src> <quartz-config> [index-md]}"
+INDEX_MD="${3:-}"
 
 # Stage the pinned Quartz tree, re-copying only when the flake input moves
 # (its store path is the cache key). node_modules comes along for free: it is
@@ -56,8 +58,23 @@ stage_quartz
 sync_vault
 
 rev="$(git -C "$BUILD/vault" rev-parse HEAD)"
-if [ -f "$BUILD/published.rev" ] && [ "$(cat "$BUILD/published.rev")" = "$rev" ]; then
-  exit 0 # vault unchanged since the last publish
+
+# The injected landing page is part of what gets published, so its content has
+# to be part of the change key — otherwise editing it would never republish.
+index_sum=""
+if [ -n "$INDEX_MD" ] && [ -f "$INDEX_MD" ]; then
+  index_sum="$(sha256sum "$INDEX_MD" | cut -d' ' -f1)"
+fi
+key="$rev:$index_sum"
+
+if [ -f "$BUILD/published.rev" ] && [ "$(cat "$BUILD/published.rev")" = "$key" ]; then
+  exit 0 # nothing to publish since the last run
+fi
+
+# Site root. Only fill in for the vault: if Concepts/ ships its own index.md,
+# that wins. Injected into the clone, never into the vault.
+if [ -n "$index_sum" ] && [ ! -f "$BUILD/vault/$VAULT_SUBDIR/index.md" ]; then
+  cp "$INDEX_MD" "$BUILD/vault/$VAULT_SUBDIR/index.md"
 fi
 
 cd "$BUILD/quartz"
@@ -70,5 +87,5 @@ NODE_OPTIONS="--max-old-space-size=768" \
 
 # Trailing slash: sync the CONTENTS of out/ into the docroot Caddy serves.
 rsync -a --delete "$BUILD/out/" "$DOCROOT/"
-printf '%s\n' "$rev" >"$BUILD/published.rev"
+printf '%s\n' "$key" >"$BUILD/published.rev"
 echo "published $rev ($(find "$DOCROOT" -name '*.html' | wc -l) pages)"

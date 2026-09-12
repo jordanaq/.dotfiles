@@ -23,6 +23,9 @@ let
   # repo's config file as the single source of truth for the site.
   quartzSrc = inputs.quartz;
   quartzConfig = ./notes-site-quartz.config.yaml;
+  # Landing page for the site root — Concepts/ has no index.md, so without this
+  # `/` returns 404. Injected into the build clone only, never into the vault.
+  notesIndex = ./notes-site-index.md;
 
   publish = pkgs.writeShellApplication {
     name = "notes-publish";
@@ -62,7 +65,7 @@ in
 
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${run}/bin/notes-publish-run ${quartzSrc} ${quartzConfig}";
+      ExecStart = "${run}/bin/notes-publish-run ${quartzSrc} ${quartzConfig} ${notesIndex}";
       # Long-lived by design: if the loop ever exits (a failed publish), come
       # back automatically.
       Restart = "always";
