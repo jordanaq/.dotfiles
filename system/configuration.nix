@@ -1,5 +1,12 @@
 # tsiru-cloud — lean server base configuration
 # Server-only branch of ~/.dotfiles. Services: SearXNG (behind Caddy) + SSH.
+#
+# Linode/LISH boot + networking settings below are taken from nixpkgs'
+# maintained profile `nixos/modules/virtualisation/linode-config.nix`
+# (the current equivalent of the old "Install NixOS on Linode" guide).
+# We hand-pick them instead of importing that module because it also defines
+# `fileSystems."/"` and `boot.kernelParams`, which would CONFLICT with this
+# repo's own `hardware-configuration.nix` and the nixpkgs defaults.
 
 { config, lib, pkgs, domain, ... }:
 
@@ -14,15 +21,39 @@ in {
   ];
 
   # --- Boot ---------------------------------------------------------------
-  # ⚠️ VERIFY against the Linode before `nixos-rebuild switch`: copy the
-  # EXACT boot.loader.* block from the box's current /etc/nixos/configuration.nix.
-  # Linode KVM boxes vary between legacy-BIOS GRUB and UEFI systemd-boot;
-  # the wrong choice can leave the box unbootable.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  # For a legacy-BIOS Linode, use instead:
-  #   boot.loader.grub.enable = true;
-  #   boot.loader.grub.device = "/dev/sda";
+  # ⚠️ VERIFY against the Linode before `nixos-rebuild switch`: compare with the
+  # box's current /etc/nixos/configuration.nix. Linode boots via its OWN host
+  # "GRUB 2" kernel, which reads the GRUB menu from disk — so the system must
+  # use GRUB, NOT systemd-boot.
+  boot = {
+    # Virtio/disk modules the VM needs at boot (Linode module; undocumented in
+    # the old install guide).
+    initrd.availableKernelModules = [ "virtio_pci" "virtio_scsi" "ahci" "sd_mod" ];
+    kernelModules = [ "virtio_net" ];
+
+    # LISH (out-of-band serial console) — essential when SSH is unavailable.
+    kernelParams = [ "console=ttyS0,19200n8" ];
+
+    loader = {
+      # Give LISH time to connect; mkForce because the image generator may try
+      # to set 0.
+      timeout = lib.mkForce 10;
+
+      grub = {
+        enable = true;
+        # Linode disks are partitionless; force past GRUB's blocklist warning.
+        # GRUB runs from the host, so nothing is actually installed to disk.
+        forceInstall = true;
+        device = "nodev";
+        # Serial terminal so GRUB itself is usable over LISH.
+        extraConfig = ''
+          serial --speed=19200 --unit=0 --word=8 --parity=no --stop=1;
+          terminal_input serial;
+          terminal_output serial
+        '';
+      };
+    };
+  };
 
   system.stateVersion = "25.05";
   time.timeZone = "America/New_York";
@@ -31,6 +62,16 @@ in {
     hostName = "tsiru-cloud";
     domain = domain;
     nameservers = [ "9.9.9.9" "149.112.112.112" ];
+
+    # Linode networking conventions (single eth0, DHCP). Matches Linode's own
+    # images so their docs/support tooling behave as expected.
+    usePredictableInterfaceNames = false;
+    useDHCP = false;
+    interfaces.eth0 = {
+      useDHCP = true;
+      # Linode expects IPv6 privacy extensions disabled.
+      tempAddress = "disabled";
+    };
 
     # Default deny. Public web traffic only via Caddy:
     #   80  → ACME HTTP-01 challenge
@@ -63,7 +104,8 @@ in {
     ];
   };
 
-  # --- Minimal CLI tooling (+ home-manager for the standalone HM switch) ---
+  # --- Minimal CLI tooling + home-manager (for the standalone HM switch) ---
+  # inetutils/mtr/sysstat are what Linode support asks for when troubleshooting.
   environment.systemPackages = with pkgs; [
     bat
     curl
@@ -71,10 +113,13 @@ in {
     fzf
     git
     htop
+    inetutils
     jq
+    mtr
     neovim
     ripgrep
     rsync
+    sysstat
     tmux
     tree
     unzip
@@ -82,6 +127,9 @@ in {
     home-manager
   ];
   programs.fish.enable = true;
+
+  # Grow the root filesystem to fill the disk after a Linode disk resize.
+  fileSystems."/".autoResize = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
