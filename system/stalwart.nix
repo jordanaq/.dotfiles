@@ -158,7 +158,13 @@ in
                 "@type" = "Automatic";
                 algorithms = [ "Dkim1RsaSha256" ];
               };
-              dnsManagement = { "@type" = "Manual"; };
+              # dnsManagement is deliberately ABSENT. It is Automatic with a
+              # Spaceship DnsServer (publishRecords = dkim + tlsa), configured
+              # once in the datastore — the Spaceship API key is a plain string
+              # with no file/env variant and cannot live in this public repo.
+              # Upsert preserves fields it does not declare, so omitting it here
+              # keeps the datastore value; declaring Manual would reset it and
+              # DKIM would stop rotating. See the skill reference for the setup.
             };
           };
         };
@@ -268,6 +274,10 @@ in
   # NOTE: /etc/secrets/scaleway.smtp-user is read by NOTHING — 0.16 removed the
   # %{file:…}% macros and authUsername is a plain string with no file variant.
   # Set it once in the WebUI (Settings › MTA › Outbound › Routes › scaleway →
-  # Username); provisioning's upsert preserves it. DKIM is now Stalwart's own
-  # (dkimManagement = Automatic) — publish the _domainkey record it reports.
+  # Username); provisioning's upsert preserves it.
+  # DKIM is now Stalwart's own (dkimManagement = Automatic), and DKIM rotation +
+  # TLSA publishing are Automatic too via a Spaceship DnsServer object held in the
+  # datastore — its API key is read from /etc/secrets/spaceship.env by a one-time
+  # `stalwart-cli create DnsServer` and is never committed. publishRecords is
+  # limited to dkim + tlsa, so MX/SPF/DMARC stay under manual control.
 }
