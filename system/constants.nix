@@ -4,5 +4,5 @@
 { ... }:
 
 {
-  _module.args.domain = "tsiru.cat";
+  _module.args.domain = "tsiru.pet";
 }

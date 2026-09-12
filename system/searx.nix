@@ -1,6 +1,6 @@
 # SearXNG — loopback-only, fronted by Caddy (system/caddy.nix).
 # Self-contained: no Firecrawl, no Docker, nothing reaches it but Caddy.
-{ pkgs, ... }:
+{ domain, pkgs, ... }:
 
 {
   services.searx = {
@@ -20,7 +20,7 @@
         port = 8888;
         method = "POST";
         # Served at the subdomain root — no subpath prefixing needed.
-        base_url = "https://search.tsiru.cat/";
+        base_url = "https://search.${domain}/";
         secret_key = "$SEARXNG_SECRET";
         public_instance = false;
         limiter = false;
