@@ -114,6 +114,56 @@
           file_server
         '';
       };
+
+      # mail.<domain> — the JMAP + CalDAV/CardDAV endpoint (and the Stalwart
+      # webadmin) served by Stalwart's loopback HTTP listener.
+      #
+      # Deliberately PUBLIC: Stalwart authenticates these requests itself, and
+      # CalDAV/CardDAV clients (phones, Thunderbird) plus Bulwark talk to this
+      # host directly. Putting basic_auth in front would break every non-browser
+      # client, exactly as it would break OPDS on the calibre vhost.
+      #
+      # TLS comes from security.acme (DNS-01 via Spaceship), NOT Caddy's own
+      # ACME — the same certificate Stalwart uses on the mail ports, so there is
+      # one cert for the name instead of two.
+      "mail.${domain}" = {
+        extraConfig = ''
+          tls /var/lib/acme/mail.${domain}/fullchain.pem /var/lib/acme/mail.${domain}/key.pem
+          reverse_proxy 127.0.0.1:8080
+        '';
+      };
+
+      # webmail.<domain> — Bulwark (system/bulwark.nix). Public: Bulwark's own
+      # login gates it, and the login IS the mail account.
+      "webmail.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-webmail.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          reverse_proxy 127.0.0.1:3100
+        '';
+      };
+
+      # admin.<domain> — the Stalwart server control panel (create accounts,
+      # DKIM, queues, logs). GATED with basic_auth, same mechanism as
+      # search.<domain>, because this is the panel that can hand out accounts.
+      "admin.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-admin.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          basic_auth {
+            tsiru {$CADDY_AUTH_HASH}
+          }
+          reverse_proxy 127.0.0.1:8080
+        '';
+      };
     };
   };
 }

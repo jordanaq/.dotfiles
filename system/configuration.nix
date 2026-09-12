@@ -21,6 +21,8 @@ in {
     ./caddy.nix
     ./calibre.nix
     ./linkstack.nix
+    ./stalwart.nix
+    ./bulwark.nix
     ./fail2ban.nix
   ];
 
