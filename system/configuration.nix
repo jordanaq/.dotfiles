@@ -26,9 +26,9 @@ in {
   # "GRUB 2" kernel, which reads the GRUB menu from disk — so the system must
   # use GRUB, NOT systemd-boot.
   boot = {
-    # Virtio/disk modules the VM needs at boot (Linode module; undocumented in
-    # the old install guide).
-    initrd.availableKernelModules = [ "virtio_pci" "virtio_scsi" "ahci" "sd_mod" ];
+    # The initrd virtio/disk modules (virtio_pci, virtio_scsi, ahci, sd_mod)
+    # come from the generated system/hardware-configuration.nix — not duplicated
+    # here. virtio_net is NOT in that file, so it stays.
     kernelModules = [ "virtio_net" ];
 
     # LISH (out-of-band serial console) — essential when SSH is unavailable.
