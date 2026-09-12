@@ -56,16 +56,33 @@ sync_vault() {
 # Obsidian inline snippets (Templater/Dataview) cannot be evaluated by Quartz,
 # so they land in the page as literal code. 100 notes carry exactly:
 #   Last Modified: `=dateformat(this.file.mtime, "DDDD, HH:mm")`
-# Substitute each note's real last-commit date. Runs on the BUILD CLONE only.
+#
+# Date source, most truthful first:
+#   1. the note's own frontmatter `last_modified:` (46 notes; DATE ONLY — the
+#      vault records no time of day here)
+#   2. the last commit date for that file
+# There is deliberately NO time in the output: the only time-bearing source is
+# the commit timestamp, which is often the 23:00 daily auto-commit rather than
+# an edit, so an HH:mm would be an artifact dressed up as fact.
+# Runs on the BUILD CLONE only.
 render_dates() {
-  local f rel when
+  local f rel when long
   while IFS= read -r -d '' f; do
     grep -q 'this\.file\.mtime' "$f" 2>/dev/null || continue
     rel="${f#"$BUILD/vault/"}"
-    # Commit date is the meaningful "last modified"; a fresh clone's mtime is not.
-    when="$(git -C "$BUILD/vault" log -1 --format=%cs -- "$rel" 2>/dev/null || true)"
+
+    # NOTE: start this with sed, not grep — grep exits 1 on "no match", and
+    # under `set -e`/pipefail a failing command substitution in an assignment
+    # kills the whole script mid-loop (which is exactly how this bug shipped
+    # once: the snippet silently stayed raw).
+    when="$(sed -nE 's/^last_modified:[[:space:]]*"?([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/p' "$f" 2>/dev/null |
+      head -1 | tr -d '\r' || true)"
+    [ -n "$when" ] || when="$(git -C "$BUILD/vault" log -1 --format=%cs -- "$rel" 2>/dev/null || true)"
     [ -n "$when" ] || when="$(date -r "$f" +%F 2>/dev/null || date +%F)"
-    sed -i "/this\.file\.mtime/{s|.*|Last Modified: $when|}" "$f"
+
+    # Long human form ("Friday, August 7, 2026"), English regardless of locale.
+    long="$(LC_ALL=C date -d "$when" '+%A, %B %-d, %Y' 2>/dev/null || printf '%s' "$when")"
+    sed -i "/this\.file\.mtime/{s|.*|Last Modified: $long|}" "$f"
   done < <(find "$BUILD/vault/$VAULT_SUBDIR" -name '*.md' -print0)
 }
 
