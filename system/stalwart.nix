@@ -140,9 +140,11 @@ in
       };
 
       objects = {
-        # The local domain. certificate/dkim/dns management are all MANUAL:
-        # the TLS cert is pasted in the WebUI (external security.acme files,
-        # no repo secrets) and DKIM is Scaleway's (external, DNS-side).
+        # The local domain. dnsManagement stays MANUAL — Spaceship is the DNS
+        # authority, so records are published by hand. dkimManagement is
+        # AUTOMATIC: Stalwart generates and rotates its own key and signs
+        # outbound; copy the record it reports (Settings › Domains › tsiru.pet)
+        # into Spaceship.
         Domain = {
           reconcile = false;
           match = [ "name" ];
@@ -150,8 +152,31 @@ in
             main = {
               name = domain;
               certificateManagement = { "@type" = "Manual"; };
-              dkimManagement = { "@type" = "Manual"; };
+              dkimManagement = { "@type" = "Automatic"; };
               dnsManagement = { "@type" = "Manual"; };
+            };
+          };
+        };
+
+        # TLS certificate, file-sourced from the security.acme output above.
+        # 0.16 removed the %{file:…}% macros the 0.15 config used, so this File
+        # PublicText/SecretText is their replacement. Stalwart picks the cert by
+        # SAN, so nothing on the Domain needs to link it. matchOn is the SAN
+        # set — stable across renewals, as is the file path.
+        Certificate = {
+          reconcile = false;
+          match = [ "subjectAlternativeNames" ];
+          objects = {
+            mail = {
+              certificate = {
+                "@type" = "File";
+                filePath = "${acmeDir}/fullchain.pem";
+              };
+              privateKey = {
+                "@type" = "File";
+                filePath = "${acmeDir}/key.pem";
+              };
+              subjectAlternativeNames = [ mailHost ];
             };
           };
         };
@@ -160,7 +185,11 @@ in
         # SMTP listeners serve both MX and client submission on their ports
         # (587/465 are distinguished by the TLS setup / stage config).
         NetworkListener = {
-          reconcile = false;
+          # Reconcile (not upsert) so the 0.16 auto-created defaults get purged:
+          # https:[::]:443 collides with Caddy, pop3s:995 is unused (never
+          # firewalled), and imaps:993 duplicates our imap below. Only the six
+          # declared here survive.
+          reconcile = true;
           match = [ "name" ];
           objects = {
             smtp = {
@@ -231,6 +260,9 @@ in
   #   /etc/secrets/scaleway.smtp-password  Scaleway API secret key
   #   /etc/secrets/stalwart-admin-password PLAINTEXT admin password (0.16; the
   #                                         0.15 sha512 hash file is obsolete)
-  # DKIM is signed by Scaleway (add the records it shows you), so Stalwart does
-  # not hold a DKIM key here.
+  # NOTE: /etc/secrets/scaleway.smtp-user is read by NOTHING — 0.16 removed the
+  # %{file:…}% macros and authUsername is a plain string with no file variant.
+  # Set it once in the WebUI (Settings › MTA › Outbound › Routes › scaleway →
+  # Username); provisioning's upsert preserves it. DKIM is now Stalwart's own
+  # (dkimManagement = Automatic) — publish the _domainkey record it reports.
 }
