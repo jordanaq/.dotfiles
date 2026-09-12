@@ -7,6 +7,7 @@
     ./git
     ./misc
     ./neovim
+    ./notes-site
     ./pandoc
     ./zip
     ./zoxide
