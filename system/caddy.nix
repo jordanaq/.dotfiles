@@ -86,6 +86,23 @@
         '';
       };
 
+      # notes.<domain> — public Quartz export of the vault's Concepts/ folder
+      # (see ~/Documents/Projects/notes-site). Static files are rsynced to
+      # /var/lib/notes-site by the publish step; served read-only, no service,
+      # no runtime RAM. Deliberately PUBLIC.
+      "notes.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-notes.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          root * /var/lib/notes-site
+          file_server
+        '';
+      };
+
       # linkstack — link-in-bio page (see system/linkstack.nix).
       #
       # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
