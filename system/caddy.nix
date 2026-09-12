@@ -164,23 +164,15 @@
         '';
       };
 
-      # admin.<domain> — the Stalwart server control panel (create accounts,
-      # DKIM, queues, logs). GATED with basic_auth, same mechanism as
-      # search.<domain>, because this is the panel that can hand out accounts.
-      "admin.${domain}" = {
-        logFormat = ''
-          output file /var/log/caddy/access-admin.${domain}.log {
-            roll_size 10MiB
-            roll_keep 5
-          }
-        '';
-        extraConfig = ''
-          basic_auth {
-            tsiru {$CADDY_AUTH_HASH}
-          }
-          reverse_proxy 127.0.0.1:8080
-        '';
-      };
+      # NOTE: there is deliberately NO admin.<domain> vhost.
+      # Stalwart serves its control panel at /admin on its HTTP listener, and
+      # mail.<domain> proxies that listener — so the panel lives at
+      # https://mail.<domain>/admin, gated by Stalwart's OWN admin login.
+      # A separate vhost bought nothing: the Caddy basic_auth in front of it was
+      # bypassable by simply visiting mail.<domain>/admin, AND it *broke* the
+      # panel — the browser reuses the cached Caddy Authorization header for the
+      # SPA's own login call, so Stalwart received the Caddy username/password
+      # and answered "Incorrect username or password".
     };
   };
 }
