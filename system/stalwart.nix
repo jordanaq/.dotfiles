@@ -92,7 +92,7 @@ in
     # 0.16 boot so the datastore migrates and export.json can be applied, then
     # flip it back off. Normally it must stay false.
     recovery = {
-      enable = true;
+      enable = false;
       port = 8080;
     };
 
@@ -109,12 +109,8 @@ in
     # does NOT convert listeners or routing, so without these the upgraded
     # server would listen on nothing and deliver outbound mail directly
     # (which Linode blocks).
-    #
-    # MIGRATION MODE: provision is DISABLED during the recovery-mode step —
-    # export.json must be applied by hand first; the provision unit comes back
-    # with config B.
     provision = {
-      enable = false;
+      enable = true;
       url = "http://127.0.0.1:8080";
 
       singletons = {
@@ -140,6 +136,22 @@ in
       };
 
       objects = {
+        # The local domain. certificate/dkim/dns management are all MANUAL:
+        # the TLS cert is pasted in the WebUI (external security.acme files,
+        # no repo secrets) and DKIM is Scaleway's (external, DNS-side).
+        Domain = {
+          reconcile = false;
+          match = [ "name" ];
+          objects = {
+            main = {
+              name = domain;
+              certificateManagement = { "@type" = "Manual"; };
+              dkimManagement = { "@type" = "Manual"; };
+              dnsManagement = { "@type" = "Manual"; };
+            };
+          };
+        };
+
         # Listeners. The 0.16 protocol enum has no 'submission' variants:
         # SMTP listeners serve both MX and client submission on their ports
         # (587/465 are distinguished by the TLS setup / stage config).
