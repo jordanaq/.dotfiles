@@ -3,14 +3,6 @@ let
   btop-theme = "catppuccin_macchiato";
 in {
 
-  nixpkgs.overlays = [
-    (final: prev: {
-      btop = prev.btop.override {
-        rocmSupport = true;
-      };
-    })
-  ];
-
   home.file.btop-themes = {
     source = ./assets/btop;
     target = ".config/btop";

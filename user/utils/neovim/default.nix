@@ -19,34 +19,18 @@
     vimAlias = true;
     vimdiffAlias = true;
 
+    # Server edition: editor basics only — no per-language toolchains.
     extraPackages = with pkgs; [
-      # AI assistant tooling
+      # Tooling deps
       curl
       file
       ripgrep
 
-      # Language servers
+      # Language servers (editor essentials)
       bash-language-server
-      clang-tools
-      haskell-language-server
-      (julia.withPackages [
-        "LanguageServer"
-        "StaticLint"
-        "SymbolServer"
-      ])
-      ltex-ls-plus
       lua-language-server
       marksman
-      millet
       nil
-      pyright
-      rust-analyzer
-      svelte-language-server
-      taplo
-      typescript-language-server
-      vale-ls
-      vscode-langservers-extracted
-      yaml-language-server
     ];
 
     plugins = with pkgs.vimPlugins; [
