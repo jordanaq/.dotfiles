@@ -1,43 +1,26 @@
 # Uptime Kuma — self-hosted status/heartbeat monitor.
 #
-# Watches the public surface (site, notes, links, webmail, mail TLS ports,
-# search, library) and can notify on downtime. Lightweight (~100-150 MB RSS),
-# fits the 2 GB Linode fine.
+# PRIVATE by design: listens on loopback only and is NOT in Caddy. Reach it
+# over the tailnet via `tailscale serve` (persistent across reboots):
 #
-# Exposure model: bound to loopback only and fronted by Caddy at
-# status.<domain> behind the SAME basic-auth credential as search.<domain>
-# (CADDY_AUTH_HASH from /etc/secrets/caddy.env — no new secrets file).
-# Deliberately NOT tailscale-only: Kuma's push/heartbeat monitors and the
-# notification setup work from anywhere, and the basic-auth gate matches the
-# existing pattern. Reaching it privately via Tailscale also works.
+#   sudo tailscale serve --bg --https=443 http://127.0.0.1:3001
 #
-# First run: create the admin account at https://status.<domain> (the instance
-# is unusable until then; registration is only via that first-run setup screen).
-{ config, domain, ... }:
+#   -> https://tsiru-cloud.<tailnet>.ts.net  (valid ts.net cert, tailnet-only)
+#
+# First run: create the admin account at that URL (first-run setup screen).
+{ config, lib, ... }:
 
 {
   services.uptime-kuma = {
     enable = true;
-    # Loopback only — Caddy is the only path in.
+    # Loopback only — the ONLY paths in are tailscale serve (above) or an SSH
+    # tunnel: `ssh -L 3001:127.0.0.1:3001 tsiru.pet`.
     settings.HOST = "127.0.0.1";
     settings.PORT = "3001";
   };
 
-  services.caddy.virtualHosts."status.${domain}" = {
-    logFormat = ''
-      output file /var/log/caddy/access-status.${domain}.log {
-        roll_size 10MiB
-        roll_keep 5
-      }
-    '';
-    extraConfig = ''
-      basic_auth {
-        tsiru {$CADDY_AUTH_HASH}
-      }
-      reverse_proxy 127.0.0.1:3001
-
-      # Kuma uses WebSocket for its live status feed; Caddy proxies WS
-      # automatically, nothing extra needed.
-    '';
-  };
+  # No Caddy vhost: the earlier public `status.${domain}` vhost (basic-auth
+  # gated) was removed 2026-09-12 in favour of tailnet-only access. If you
+  # ever want a public status PAGE later, expose a separate read-only
+  # status page — not this admin dashboard.
 }
