@@ -161,7 +161,19 @@
           }
         '';
         extraConfig = ''
-          reverse_proxy 127.0.0.1:3100
+          reverse_proxy 127.0.0.1:3100 {
+            # Bulwark listens plaintext on :3100, but its next-intl middleware
+            # builds an ABSOLUTE rewrite target (e.g. "/" -> "/en") using
+            # X-Forwarded-Proto. Forwarding "https" makes it proxy to
+            # https://localhost:3100/en — TLS at its own plaintext port — which
+            # dies with EPROTO "wrong version number" and surfaces as a 500 on
+            # every page. "http" is the correct value for THIS hop and fixes it.
+            # Cookies are unaffected: Bulwark's COOKIE_SECURE defaults to true
+            # independently of this header.
+            # Verified against Bulwark 1.9.2: GET / with XFP=https -> 500,
+            # XFP=http -> 200, absent -> 200.
+            header_up X-Forwarded-Proto http
+          }
         '';
       };
 
