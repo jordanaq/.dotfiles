@@ -61,6 +61,23 @@ in
     settings = {
       server.hostname = mailHost;
 
+      # Bootstrap administrator. Stalwart ships with NO accounts at all — the
+      # `--init` installer normally creates the first one, and we bypassed that
+      # by generating the config declaratively. Without this the WebUI at
+      # admin.<domain> has nobody to sign in as, and since every account
+      # operation goes through an authenticated JMAP call, no mailbox can ever
+      # be created.
+      #
+      # The secret is a sha512-crypt hash ($6$...), kept OUT of this public repo
+      # in /etc/secrets and pulled in by the config macro below. Generate it on
+      # the box with:   nix run nixpkgs#mkpasswd -- -m sha-512
+      # The file must exist and be readable by the `stalwart` user BEFORE the
+      # rebuild, or the macro fails and the service will not start.
+      authentication."fallback-admin" = {
+        user = "admin";
+        secret = "%{file:/etc/secrets/stalwart-admin.hash}%";
+      };
+
       certificate."mail" = {
         cert = "%{file:${acmeDir}/fullchain.pem}%";
         private-key = "%{file:${acmeDir}/key.pem}%";
