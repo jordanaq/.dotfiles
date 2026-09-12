@@ -1,8 +1,0 @@
-{ ... }:
-
-{
-  imports = [
-    ./comfy
-    ./llms
-  ];
-}

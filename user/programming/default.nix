@@ -1,9 +1,0 @@
-{ ... }:
-
-{
-  imports = [
-    ./languages
-    ./utils
-    ./vscode
-  ];
-}
