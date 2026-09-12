@@ -1,4 +1,5 @@
-# Caddy — auto-TLS reverse proxy in front of SearXNG and the Calibre services.
+# Caddy — auto-TLS reverse proxy in front of SearXNG, the Calibre services,
+# and LinkStack.
 #
 # Caddy obtains and renews a Let's Encrypt certificate for
 # search.<domain> automatically (HTTP-01 challenge on :80) and enforces
@@ -22,7 +23,7 @@
 #      not optional here, and Caddy refuses to start without it
 #      ("username and password cannot be empty or missing").
 #   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
-{ domain, ... }:
+{ config, domain, ... }:
 
 {
   services.caddy = {
@@ -69,6 +70,35 @@
         '';
         extraConfig = ''
           reverse_proxy 127.0.0.1:8081
+        '';
+      };
+
+      # linkstack — link-in-bio page (see system/linkstack.nix).
+      #
+      # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
+      # Anyone can read the page; LinkStack's own admin login — created by the
+      # first-run installer — gates *editing* only, never viewing.
+      #
+      # ⚠️ Unlike the other vhosts, LinkStack's docroot is the APP ROOT, not a
+      # `public/` subdir — that is how upstream ships it (shared-hosting layout),
+      # and `.htaccess` is what normally hides `.env`, the SQLite DB and the
+      # release archives. Caddy ignores `.htaccess`, so those denials are
+      # re-stated here. KEEP THIS IN SYNC with the `.htaccess` in the release.
+      "links.${domain}" = {
+        extraConfig = ''
+          root * /var/lib/linkstack
+
+          # Deny dotfiles (covers .env), the SQLite database, release archives,
+          # and the application source directories. Multiple `path` lines in
+          # one named matcher are OR-ed together.
+          @blocked {
+            path /.* *.sqlite *.zip
+            path /app/* /config/* /database/* /bootstrap/* /vendor/* /routes/*
+          }
+          respond @blocked 404
+
+          php_fastcgi unix/${config.services.phpfpm.pools.linkstack.socket}
+          file_server
         '';
       };
     };

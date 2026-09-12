@@ -20,6 +20,7 @@ in {
     ./searx.nix
     ./caddy.nix
     ./calibre.nix
+    ./linkstack.nix
     ./fail2ban.nix
   ];
 
