@@ -92,7 +92,7 @@ in
     # 0.16 boot so the datastore migrates and export.json can be applied, then
     # flip it back off. Normally it must stay false.
     recovery = {
-      enable = false;
+      enable = true;
       port = 8080;
     };
 
@@ -109,8 +109,12 @@ in
     # does NOT convert listeners or routing, so without these the upgraded
     # server would listen on nothing and deliver outbound mail directly
     # (which Linode blocks).
+    #
+    # MIGRATION MODE: provision is DISABLED during the recovery-mode step —
+    # export.json must be applied by hand first; the provision unit comes back
+    # with config B.
     provision = {
-      enable = true;
+      enable = false;
       url = "http://127.0.0.1:8080";
 
       singletons = {
