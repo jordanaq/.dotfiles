@@ -1,0 +1,13 @@
+[package]
+name = "searx-proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tiny_http = "0.12"
+ureq = { version = "2", features = ["tls", "native-certs"] }
+base64 = "0.22"
+
+[profile.release]
+opt-level = "z"
+strip = true

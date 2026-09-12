@@ -21,5 +21,6 @@
     ./firecrawl.nix
     ./grammarforge.nix
     ./opencode.nix
+    ./searx-proxy.nix
   ];
 }
