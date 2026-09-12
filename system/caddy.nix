@@ -1,4 +1,4 @@
-# Caddy — auto-TLS reverse proxy in front of SearXNG.
+# Caddy — auto-TLS reverse proxy in front of SearXNG and the Calibre services.
 #
 # Caddy obtains and renews a Let's Encrypt certificate for
 # search.<domain> automatically (HTTP-01 challenge on :80) and enforces
@@ -32,11 +32,45 @@
     # EnvironmentFile, read as root before dropping to the caddy user).
     environmentFile = "/etc/secrets/caddy.env";
 
-    virtualHosts."search.${domain}".extraConfig = ''
-      basic_auth {
-        tsiru {$CADDY_AUTH_HASH}
-      }
-      reverse_proxy 127.0.0.1:8888
-    '';
+    virtualHosts = {
+      "search.${domain}".extraConfig = ''
+        basic_auth {
+          tsiru {$CADDY_AUTH_HASH}
+        }
+        reverse_proxy 127.0.0.1:8888
+      '';
+
+      # calibre-web — browser UI for the Calibre library. calibre-web's OWN
+      # login is the gate (deliberately NO Caddy basicauth here: a second gate
+      # would break OPDS / reader-app access).
+      # Access logging is automatic (the module's `logFormat` default writes
+      # /var/log/caddy/access-<host>.log); we add rolling so it can't grow
+      # unbounded. fail2ban reads these files.
+      "library.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-library.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          reverse_proxy 127.0.0.1:8083
+        '';
+      };
+
+      # Calibre content server — remote `calibredb` + OPDS. calibre-server's
+      # OWN auth is the gate.
+      "calibre.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-calibre.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          reverse_proxy 127.0.0.1:8081
+        '';
+      };
+    };
   };
 }
