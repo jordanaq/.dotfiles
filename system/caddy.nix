@@ -1,5 +1,5 @@
 # Caddy — auto-TLS reverse proxy in front of SearXNG, the Calibre services,
-# and LinkStack.
+# LinkStack, and the public personal site at the apex domain.
 #
 # Caddy obtains and renews a Let's Encrypt certificate for
 # search.<domain> automatically (HTTP-01 challenge on :80) and enforces
@@ -23,7 +23,7 @@
 #      not optional here, and Caddy refuses to start without it
 #      ("username and password cannot be empty or missing").
 #   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
-{ config, domain, ... }:
+{ config, domain, inputs, ... }:
 
 {
   services.caddy = {
@@ -70,6 +70,19 @@
         '';
         extraConfig = ''
           reverse_proxy 127.0.0.1:8081
+        '';
+      };
+
+      # tsiru.pet — the public personal site (bio + projects), built from the
+      # `tsiru-pet` flake input (github.com/jordanaq/tsiru-pet) at nix build
+      # time by Zola. Served straight out of the read-only store path: no
+      # service, no PHP, no DB, zero runtime RAM.
+      #
+      # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
+      "${domain}" = {
+        extraConfig = ''
+          root * ${inputs.tsiru-pet.packages.${config.nixpkgs.hostPlatform.system}.default}
+          file_server
         '';
       };
 

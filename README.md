@@ -14,6 +14,7 @@ desktop/GUI/GPU stack and keeps only what the server needs.
 | **calibre-web** | `https://library.tsiru.pet` | Browser UI for the Calibre library. Behind Caddy; calibre-web's own login is the gate. |
 | **calibre-server** | `https://calibre.tsiru.pet` | Calibre content server — remote `calibredb` + OPDS. Behind Caddy; its own auth is the gate. |
 | **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/linkstack.nix`. |
+| **Personal site** | `https://tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. No auth. |
 | **Caddy** | `:80`, `:443` | Reverse proxy + automatic Let's Encrypt TLS (HTTP-01 on `:80`). |
 | **OpenSSH** | `:22` | Key-only, `tsiru` only (`PasswordAuthentication=false`, `PermitRootLogin=no`). |
 | **Firewall** | — | Default deny. Open: `22`, `80`, `443`. |
@@ -76,10 +77,10 @@ no rebuild.
 
 ## DNS
 
-An `A` record for each subdomain — `search.tsiru.pet`, `library.tsiru.pet`,
-`calibre.tsiru.pet`, `links.tsiru.pet` → `<LINODE_IP>` — set to **DNS-only /
-grey cloud** so Caddy's ACME HTTP-01 challenge reaches the box directly. Check
-with `dig +short links.tsiru.pet` before the first rebuild.
+An `A` record for each name — the apex `tsiru.pet` plus `search.tsiru.pet`,
+`library.tsiru.pet`, `calibre.tsiru.pet`, `links.tsiru.pet` → `<LINODE_IP>` —
+set to **DNS-only / grey cloud** so Caddy's ACME HTTP-01 challenge reaches the
+box directly. Check with `dig +short tsiru.pet` before the first rebuild.
 
 ## LinkStack (links.tsiru.pet)
 
@@ -100,6 +101,19 @@ Keep the two in sync.
   `nix store prefetch-file <release-url>`.
 - **First run:** visit `https://links.tsiru.pet` — the browser installer runs
   (creates the admin account + SQLite DB). No secret file is needed up front.
+
+## Personal site (tsiru.pet)
+
+The public bio + projects page. Source and build live in a separate repo,
+[`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet); this config
+consumes it as the `tsiru-pet` flake input and Caddy serves the built store
+path at the apex domain. Nothing runs on the box for it.
+
+- **Editing the page:** change content in the site repo and push — the box
+  picks it up on the next `nix flake update tsiru-pet` + rebuild.
+- **GitHub section:** the site's "From GitHub" list is generated ahead of time
+  by `scripts/fetch-github-projects.sh` in that repo (Nix builds have no
+  network, so the data file is committed, not fetched at build time).
 
 ## Usage
 

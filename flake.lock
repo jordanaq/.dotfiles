@@ -39,7 +39,29 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "tsiru-pet": "tsiru-pet"
+      }
+    },
+    "tsiru-pet": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789205038,
+        "narHash": "sha256-6srIi4ucTBpxoEQl5Vu2b4B7SrBbsKLwGa0LPUx2iZE=",
+        "ref": "main",
+        "rev": "2538d539df681785ea2ab9673638c768605ad39f",
+        "revCount": 4,
+        "type": "git",
+        "url": "https://github.com/jordanaq/tsiru-pet"
+      },
+      "original": {
+        "ref": "main",
+        "type": "git",
+        "url": "https://github.com/jordanaq/tsiru-pet"
       }
     }
   },
