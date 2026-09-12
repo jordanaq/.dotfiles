@@ -105,8 +105,8 @@ in {
     wget
     xinit
     xrandr
-    libsForQt5.qt5.qtbase
-    libsForQt5.qt5.qtgraphicaleffects
+    qt5.qtbase
+    qt5.qtgraphicaleffects
   ];
 
   nixpkgs.config = {
