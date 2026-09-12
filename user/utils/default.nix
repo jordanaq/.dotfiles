@@ -14,6 +14,7 @@
     ./misc
     ./neovim
     ./pandoc
+    ./tailscale-systray
     ./texlive
     ./thunar
     ./zip
