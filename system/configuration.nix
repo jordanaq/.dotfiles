@@ -134,6 +134,7 @@ in {
     jq
     mtr
     neovim
+    openssl
     ripgrep
     rsync
     sysstat
