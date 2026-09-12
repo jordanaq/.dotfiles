@@ -46,8 +46,8 @@ in
   # removes the problem instead of overriding it. Caddy reads these
   # world-readable (0755 dirs / 0644 files, the default umask).
   systemd.tmpfiles.rules = [
-    "d /var/lib/notes-build 0755 tsiru tsiru -"
-    "d /var/lib/notes-site 0755 tsiru tsiru -"
+    "d /var/lib/notes-build 0755 tsiru users -"
+    "d /var/lib/notes-site 0755 tsiru users -"
   ];
 
   systemd.services.notes-publish = {
@@ -69,8 +69,10 @@ in
       RestartSec = 60;
       # Run as the vault's owner: no root needed (it only writes under /var/lib,
       # which tmpfiles hands to this user) and no cross-user git ownership.
+      # NOTE: no Group= — the box has NO `tsiru` group (uid 1000, gid 100
+      # `users`), and systemd exits 216/GROUP when the group can't be resolved.
+      # Omitting it makes systemd use the user's primary group.
       User = "tsiru";
-      Group = "tsiru";
       # Seconds between republish attempts. The vault's HEAD is checked first, so
       # a quiet vault costs one `git fetch` per tick.
       Environment = [
