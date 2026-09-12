@@ -62,9 +62,11 @@
     # calibre-web admin UI (that sets config_theme = 1).
     package = pkgs.calibre-web.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
-        ${pkgs.python3}/bin/python3 ${./catppuccin-macchiato.py} \
+        ${pkgs.python3}/bin/python3 ${./catppuccin-macchiato.py} css \
           $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur.css \
           $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur_override.css
+        ${pkgs.python3}/bin/python3 ${./catppuccin-macchiato.py} images \
+          $out/lib/python*/site-packages/calibreweb/cps/static/css/images/caliblur
         cat ${./catppuccin-macchiato-override.css} >> \
           $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur_override.css
       '';
