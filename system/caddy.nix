@@ -147,6 +147,26 @@
       "mail.${domain}" = {
         extraConfig = ''
           tls /var/lib/acme/mail.${domain}/fullchain.pem /var/lib/acme/mail.${domain}/key.pem
+
+          # Bulwark (webmail.<domain>) is a DIFFERENT origin from this JMAP
+          # endpoint, so browsers preflight every call and refuse the response
+          # without Access-Control-Allow-Origin. Stalwart 0.15.5's
+          # server.http.permissive-cors does NOT emit those headers (verified
+          # live), so Caddy does it instead. Only Bulwark's origin is allowed;
+          # phones/Thunderbird (CalDAV/CardDAV) aren't browsers and ignore CORS.
+          @cors header Origin https://webmail.${domain}
+          header @cors {
+            Access-Control-Allow-Origin "https://webmail.${domain}"
+            Access-Control-Allow-Credentials "true"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Authorization, Content-Type, Accept"
+            Vary "Origin"
+          }
+          @preflight {
+            method OPTIONS
+            header Origin https://webmail.${domain}
+          }
+          respond @preflight 204
           reverse_proxy 127.0.0.1:8080
         '';
       };

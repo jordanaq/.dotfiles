@@ -61,17 +61,12 @@ in
     settings = {
       server.hostname = mailHost;
 
-      # Bulwark (webmail.<domain>) is a DIFFERENT origin from the JMAP endpoint
-      # (mail.<domain>), so the browser preflights every JMAP call and refuses
-      # to read the response unless Stalwart answers with
-      # Access-Control-Allow-Origin. Without this, login dies with "The server
-      # is reachable but is blocking cross-origin requests".
-      #
-      # `server.http` is the Http SINGLETON (WebUI: Settings › Network › HTTP),
-      # NOT a per-listener table — putting it under server.listener.http is
-      # silently ignored. This is the fix Bulwark's own troubleshooting page
-      # prescribes for exactly this error.
-      server.http."permissive-cors" = true;
+      # CORS is handled at Caddy (see the mail.<domain> vhost in system/caddy.nix):
+      # Bulwark (webmail.<domain>) is a different origin from the JMAP endpoint,
+      # so browsers preflight every call. Stalwart 0.15.5's
+      # server.http.permissive-cors was tried here (commit 505130b) and does NOT
+      # emit Access-Control-Allow-Origin on /api, / or /.well-known/jmap —
+      # verified live on the box — so the proxy injects the headers instead.
 
       # Bootstrap administrator. Stalwart ships with NO accounts at all — the
       # `--init` installer normally creates the first one, and we bypassed that
