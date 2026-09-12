@@ -113,9 +113,10 @@ path at the apex domain. Nothing runs on the box for it.
 
 - **Editing the page:** change content in the site repo and push — the box
   picks it up on the next `nix flake update tsiru-pet` + rebuild.
-- **GitHub section:** the site's "From GitHub" list is generated ahead of time
-  by `scripts/fetch-github-projects.sh` in that repo (Nix builds have no
-  network, so the data file is committed, not fetched at build time).
+- **GitHub-derived files:** the "From GitHub" project list and the profile
+  picture are generated ahead of time by `scripts/fetch-github-projects.sh` in
+  that repo (Nix builds have no network, so both are committed, not fetched at
+  build time).
 
 ## Usage
 
