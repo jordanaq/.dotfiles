@@ -140,7 +140,16 @@ in
       # Copy the code from the read-only store copy into the data dir.
       # --exclude keeps the mutable paths the installer owns; no --delete, so
       # user-uploaded themes/blocks are never clobbered on upgrade.
-      ${pkgs.rsync}/bin/rsync -a \
+      #
+      # -rl (NOT -a) plus the --no-* flags: this unit runs as an unprivileged
+      # user, which cannot preserve owner/group/perms/times from the root-owned
+      # store tree. `-a` here fails with "Operation not permitted" on every dir.
+      #
+      # --chmod is REQUIRED, not cosmetic: store dirs are mode 0555, and rsync
+      # would otherwise create e.g. `vendor/` read-only and then fail to mkdir
+      # its children ("mkdir .../vendor/vlucas failed: Permission denied").
+      ${pkgs.rsync}/bin/rsync -rl --no-perms --no-owner --no-group \
+        --chmod=D755,F644 \
         --exclude='/.env' \
         --exclude='/storage' \
         --exclude='/bootstrap/cache' \
@@ -167,6 +176,11 @@ in
     "${dataDir}/storage/logs".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/backups".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/templates".d = { inherit user group; mode = "0750"; };
+    # `bootstrap` MUST be listed explicitly. If only `bootstrap/cache` is
+    # declared, systemd-tmpfiles creates `bootstrap` as an implicit parent
+    # (root:root), and the setup unit — running as ${user} — then cannot write
+    # bootstrap/app.php into it ("mkstemp ... Permission denied").
+    "${dataDir}/bootstrap".d = { inherit user group; mode = "0750"; };
     "${dataDir}/bootstrap/cache".d = { inherit user group; mode = "0750"; };
   };
 
