@@ -21,7 +21,7 @@
 #
 # ⚠️ ONE-TIME, on the box: `auth.userDb` is NOT auto-created, so calibre-server
 # will not start until the users DB is initialised (see the plan / deploy notes).
-{ ... }:
+{ pkgs, ... }:
 
 {
   # Both service users must read/write the one shared library. The calibre-web
@@ -54,6 +54,21 @@
   # --- calibre-web: browser UI (browse, read, upload, edit metadata) ---
   services.calibre-web = {
     enable = true;
+
+    # Catppuccin Macchiato re-skin of the dark theme. calibre-web has no theme
+    # plugin system, so we rewrite caliBlur's colour palette inside the package
+    # at build time and append the hand-written fixups to the override file it
+    # already loads last. Activate with Theme = "caliBlur! Dark Theme" in the
+    # calibre-web admin UI (that sets config_theme = 1).
+    package = pkgs.calibre-web.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        ${pkgs.python3}/bin/python3 ${./catppuccin-macchiato.py} \
+          $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur.css \
+          $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur_override.css
+        cat ${./catppuccin-macchiato-override.css} >> \
+          $out/lib/python*/site-packages/calibreweb/cps/static/css/caliBlur_override.css
+      '';
+    });
     listen = {
       ip = "127.0.0.1"; # module default is ::1; Caddy proxies over 127.0.0.1
       port = 8083;

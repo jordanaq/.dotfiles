@@ -1,0 +1,68 @@
+/* ── Catppuccin Macchiato over caliBlur ─────────────────────────────────────
+   Appended to calibre-web's caliBlur_override.css, which layout.html loads
+   LAST when the "caliBlur! Dark Theme" is active.
+
+   The bulk of the re-skin is a palette rewrite of caliBlur.css (see
+   catppuccin-macchiato.py). This file covers the two things a blind swap
+   cannot reason about: (1) the accent landing as a *background*, where the
+   inherited light text would become unreadable, and (2) surfacing the accent
+   at all — CaliBlur barely used its own.
+
+   Palette  base #24273a · mantle #1e2030 · crust #181926
+            surface0 #363a4f · surface1 #494d64 · text #cad3f5
+            accent (pink) #f5bde6
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* 1. Accent as a BACKGROUND → forced dark text.
+      The swap turns these backgrounds light pink; without this the inherited
+      light text disappears into them. */
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active,
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active,
+#remove-from-shelves > .btn:hover,
+[data-target="#DeleteShelfDialog"]:hover,
+.text-center > #delete:hover,
+.discover > .btn-danger:hover {
+  color: #24273a !important;
+}
+
+/* 2. Links. CaliBlur renders these near-white so nothing reads as a link. */
+a { color: #f5bde6; }
+a:hover, a:focus { color: #f5bde6; text-decoration: underline; }
+
+/* 3. Accent on primary actions. */
+.btn-primary {
+  background-color: #f5bde6;
+  border-color: #f5bde6;
+  color: #24273a;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active {
+  background-color: #f5bde6;
+  border-color: #f5bde6;
+  color: #24273a;
+  filter: brightness(1.08);
+}
+.pagination > .active > a,
+.pagination > .active > a:hover,
+.pagination > .active > span {
+  background-color: #f5bde6;
+  border-color: #f5bde6;
+  color: #24273a;
+}
+.label-primary, .badge-primary { background-color: #f5bde6; color: #24273a; }
+
+/* 4. Form controls sit on the surface stack, and focus rings use the accent. */
+.form-control {
+  background-color: #1e2030;
+  border-color: #363a4f;
+  color: #cad3f5;
+}
+.form-control:focus {
+  background-color: #1e2030;
+  border-color: #f5bde6;
+  color: #cad3f5;
+  box-shadow: 0 0 0 0.2rem rgba(245, 189, 230, 0.25);
+}
+.form-control::placeholder { color: #6e738d; }
+
+/* 5. Selection + scrollbar, so the accent carries through. */
+::selection { background: rgba(245, 189, 230, 0.3); color: #cad3f5; }
