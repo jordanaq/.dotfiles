@@ -171,6 +171,16 @@ in
       #   /config/advanced-config.php created at runtime by the self-heal in
       #                               routes/web.php, then edited from the
       #                               admin panel (see the seed block below)
+      #   /database/database.sqlite   the live SQLite database — APP-OWNED USER
+      #                               DATA (accounts, links, pages, visits).
+      #                               The release ALSO ships a schema-migrated
+      #                               copy of this file, so WITHOUT this
+      #                               exclusion the rsync below overwrites the
+      #                               live database with that pristine seed on
+      #                               EVERY activation — silently wiping every
+      #                               account and link on every rebuild. It is
+      #                               seeded once on first run instead (see the
+      #                               seed block below), exactly like .env.
       #
       # -rlp (NOT -a): --no-owner/--no-group because this unit is unprivileged
       # and cannot set ownership from the root-owned store tree.
@@ -190,6 +200,7 @@ in
         --exclude='/storage' \
         --exclude='/bootstrap/cache' \
         --exclude='/config/advanced-config.php' \
+        --exclude='/database/database.sqlite' \
         ${linkstack}/ ${dataDir}/
 
       # --- Seed the release's storage/ skeleton -----------------------------
@@ -239,6 +250,12 @@ in
         # `db:seed AdminSeeder` and logs the caller in as `admin`.
         # Deleting .env is therefore the documented way to force a re-install.
         install -m 0640 ${linkstack}/INSTALLING ${dataDir}/INSTALLING
+
+        # Seed the SQLite database from the release — ONCE. Laravel does not
+        # create the sqlite file itself, so a fresh install needs the release's
+        # schema-migrated copy; the rsync above deliberately excludes it from
+        # every subsequent sync so a rebuild can never clobber live user data.
+        install -m 0640 ${linkstack}/database/database.sqlite ${dataDir}/database/database.sqlite
       fi
 
       # Generate the application encryption key on first run. Laravel throws
