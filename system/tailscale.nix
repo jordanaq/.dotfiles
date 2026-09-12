@@ -4,12 +4,12 @@
 # `server` branch (checked out at ~/Documents/Projects/cloud-server).
 #
 # Deliberately NOT an autoconnect: no authKeyFile, so tailscaled runs at boot
-# but stays disconnected until you ask for the link. Toggle it with the `box`
-# fish function (user/sh/sh.nix):
+# but stays disconnected until you ask for the link. Toggle it from the tray
+# (user/utils/tailscale-systray — `tailscale systray`), or by hand:
 #
-#   box on    → tailscale up    (100.x route + MagicDNS names live)
-#   box off   → tailscale down  (private route gone; public tsiru.pet still up)
-#   box       → tailscale status
+#   tailscale up      → 100.x route + MagicDNS names live
+#   tailscale down    → private route gone; public tsiru.pet still up
+#   tailscale status
 #
 # One-time interactive login (opens an auth URL in the browser):
 #   sudo tailscale up
@@ -22,8 +22,8 @@
     enable = true;
     useRoutingFeatures = "none"; # plain client: no subnet router / exit node
 
-    # Hand the socket to the user so `box on/off` needs NO sudo. Runs as root
-    # at boot (`tailscaled-set`), and is idempotent.
+    # Hand the socket to the user so the tray (and plain `tailscale up/down`)
+    # needs NO sudo. Runs as root at boot (`tailscaled-set`), and is idempotent.
     extraSetFlags = [ "--operator=tsiru" ];
   };
 
