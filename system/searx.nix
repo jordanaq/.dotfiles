@@ -1,30 +1,27 @@
+# SearXNG — loopback-only, fronted by Caddy (system/caddy.nix).
+# Self-contained: no Firecrawl, no Docker, nothing reaches it but Caddy.
 { pkgs, ... }:
 
 {
   services.searx = {
     enable = true;
     package = pkgs.searxng;
-
-    # Do I need this?
     redisCreateLocally = true;
 
-    # Local only
-    openFirewall = true;
+    # Caddy proxies from the same host; nothing else needs to reach it.
+    # Bind loopback and do NOT open the port to the world.
+    openFirewall = false;
 
-    # Generate secrets here:
-    environmentFile = "/etc/searxng/searxng.env";
+    environmentFile = "/etc/secrets/searxng.env";
 
     settings = {
       server = {
-        # 0.0.0.0 so the Firecrawl containers can reach SearXNG via
-        # host.docker.internal:8888 (their /search backend). The NixOS
-        # firewall still gates outside access; `openFirewall` was already true.
-        bind_address = "0.0.0.0";
+        bind_address = "127.0.0.1";
         port = 8888;
         method = "POST";
-
+        # Served at the subdomain root — no subpath prefixing needed.
+        base_url = "https://search.tsiru.cat/";
         secret_key = "$SEARXNG_SECRET";
-
         public_instance = false;
         limiter = false;
       };
@@ -43,7 +40,7 @@
 
       general = {
         debug = false;
-        instance_name = "Local SearXNG";
+        instance_name = "tsiru-cloud SearXNG";
         enable_metrics = false;
       };
 
