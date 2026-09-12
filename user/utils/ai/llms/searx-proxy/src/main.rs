@@ -20,7 +20,11 @@ fn main() {
         let _ = request.as_reader().read_to_string(&mut body);
         let path = request.url().to_string();
 
-        let mut preq = ureq::request(
+        // Client headers are deliberately NOT forwarded: relaying Accept /
+        // User-Agent through to Caddy triggered empty 200 responses (content
+        // negotiation weirdness). Auth + identity encoding is all that's
+        // needed; SearXNG's /search takes its parameters from the query/body.
+        let preq = ureq::request(
             match request.method() {
                 Method::Get => "GET",
                 Method::Post => "POST",
@@ -28,18 +32,9 @@ fn main() {
             },
             &format!("{upstream}{path}"),
         )
-        .set("Authorization", &auth);
-
-        for h in request.headers() {
-            let name = h.field.as_str().as_str();
-            let v = h.value.as_str();
-            // hop-by-hop + host must not be forwarded
-            if !matches!(name, "host" | "connection" | "authorization") {
-                if !v.is_empty() {
-                    preq = preq.set(name, v);
-                }
-            }
-        }
+        .set("Authorization", &auth)
+        // Relay raw bytes only — no transparent compression on either side.
+        .set("Accept-Encoding", "identity");
 
         let resp = if body.is_empty() {
             preq.call()
@@ -55,16 +50,21 @@ fn main() {
                     .map(|v| v.to_string())
                     .unwrap_or_else(|| "application/json".into());
                 let mut body_bytes = Vec::new();
-                let _ = r.into_reader().read_to_end(&mut body_bytes);
+                if let Err(e) = r.into_reader().read_to_end(&mut body_bytes) {
+                    eprintln!("upstream read error: {e}");
+                }
                 Response::from_data(body_bytes)
                     .with_status_code(status)
                     .with_header(Header::from_bytes(&b"Content-Type"[..], ct.as_bytes()).unwrap())
             }
-            Err(_) => Response::from_data(b"{\"error\":\"upstream failed\"}".to_vec())
-                .with_status_code(502)
-                .with_header(
-                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
-                ),
+            Err(e) => {
+                eprintln!("upstream error: {e}");
+                Response::from_data(b"{\"error\":\"upstream failed\"}".to_vec())
+                    .with_status_code(502)
+                    .with_header(
+                        Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
+                    )
+            }
         };
 
         let _ = request.respond(response);
