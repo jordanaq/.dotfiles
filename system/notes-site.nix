@@ -6,8 +6,13 @@
 # needs no credentials: the publish is pull -> build -> rsync into the docroot
 # Caddy serves (see ./caddy.nix).
 #
-# Trigger: notes-publish.timer, every 5 minutes. The script exits early unless
-# the vault's HEAD moved, so an idle box pays one `git fetch`.
+# Trigger: notes-publish.service is a long-running daemon (Type=simple,
+# Restart=always) — ACTIVE from power-on — that republishes every INTERVAL
+# seconds (default 300). The publisher exits early unless the vault's HEAD
+# moved, so an idle box pays one `git fetch` per interval.
+#
+# (A oneshot + RemainAfterExit would also read "active", but it would never
+# publish again: a start request on an already-active unit is a no-op.)
 #
 # Publishing therefore follows the vault's PUSH, not the desktop's edits: a note
 # you have not pushed to the remote is not published.
@@ -23,6 +28,13 @@ let
     name = "notes-publish";
     runtimeInputs = with pkgs; [ bash coreutils findutils git nodejs rsync ];
     text = builtins.readFile ./notes-site-publish.sh;
+  };
+
+  # The always-on driver; `publish` lands on its PATH via runtimeInputs.
+  run = pkgs.writeShellApplication {
+    name = "notes-publish-run";
+    runtimeInputs = [ publish pkgs.bash pkgs.coreutils ];
+    text = builtins.readFile ./notes-site-run.sh;
   };
 in
 {
@@ -41,22 +53,30 @@ in
   systemd.services.notes-publish = {
     description = "Build + publish the vault's public notes to notes.<domain>";
 
+    # START AT POWER-ON and stay running.
+    wantedBy = [ "multi-user.target" ];
+
     # Needs the network for the first `npm ci` (npm registry) and for git.
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
 
     serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${publish}/bin/notes-publish ${quartzSrc} ${quartzConfig}";
+      Type = "simple";
+      ExecStart = "${run}/bin/notes-publish-run ${quartzSrc} ${quartzConfig}";
+      # Long-lived by design: if the loop ever exits (a failed publish), come
+      # back automatically.
+      Restart = "always";
+      RestartSec = 60;
       # Run as the vault's owner: no root needed (it only writes under /var/lib,
       # which tmpfiles hands to this user) and no cross-user git ownership.
       User = "tsiru";
       Group = "tsiru";
-      # The first run installs node_modules and builds from scratch.
-      TimeoutStartSec = "30min";
-      # ProtectHome=read-only below means /root and /home are not usable as a
-      # cache, and npm/git both want $HOME. Point them at the scratch dir.
+      # Seconds between republish attempts. The vault's HEAD is checked first, so
+      # a quiet vault costs one `git fetch` per tick.
       Environment = [
+        "INTERVAL=300"
+        # ProtectHome=read-only below means /root and /home are not usable as a
+        # cache, and npm/git both want $HOME. Point them at the scratch dir.
         "HOME=/var/lib/notes-build"
         "npm_config_cache=/var/lib/notes-build/.npm"
       ];
@@ -65,17 +85,6 @@ in
       ProtectSystem = "strict";
       ReadWritePaths = [ "/var/lib/notes-build" "/var/lib/notes-site" ];
       PrivateTmp = true;
-    };
-  };
-
-  systemd.timers.notes-publish = {
-    description = "Check the vault's git remote for new notes every 5 minutes";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnBootSec = "5min";
-      OnUnitActiveSec = "5min";
-      # Catch up after downtime, so a reboot always converges.
-      Persistent = true;
     };
   };
 }
