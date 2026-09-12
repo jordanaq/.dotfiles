@@ -27,6 +27,7 @@ in {
     ./fail2ban.nix
     ./tailscale.nix
     ./uptime-kuma.nix
+    ./vaultwarden.nix
   ];
 
   # --- Boot ---------------------------------------------------------------

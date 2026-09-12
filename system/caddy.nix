@@ -210,6 +210,29 @@
         '';
       };
 
+      # vault.<domain> — Vaultwarden (system/vaultwarden.nix), the
+      # Bitwarden-compatible password manager.
+      #
+      # Deliberately PUBLIC: Vaultwarden's own login gates it, and Bitwarden
+      # browser extensions / phone apps must reach it from anywhere. A Caddy
+      # basic_auth layer would break every non-browser client (as it would OPDS
+      # on the calibre vhost). TLS is Caddy's own ACME over HTTP-01 on :80, so
+      # the `vault` A record must be DNS-only (grey cloud).
+      "vault.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-vault.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          # WebSocket upgrade for live sync is handled automatically by
+          # reverse_proxy. Vaultwarden reads the client IP from
+          # X-Forwarded-For, which Caddy sets.
+          reverse_proxy 127.0.0.1:8222
+        '';
+      };
+
       # NOTE: there is deliberately NO admin.<domain> vhost.
       # Stalwart serves its control panel at /admin on its HTTP listener, and
       # mail.<domain> proxies that listener — so the panel lives at
