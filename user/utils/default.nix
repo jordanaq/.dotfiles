@@ -13,7 +13,6 @@
     ./kitty
     ./misc
     ./neovim
-    ./notes-site
     ./pandoc
     ./texlive
     ./thunar
