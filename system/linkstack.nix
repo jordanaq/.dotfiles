@@ -141,14 +141,18 @@ in
       # --exclude keeps the mutable paths the installer owns; no --delete, so
       # user-uploaded themes/blocks are never clobbered on upgrade.
       #
-      # -rl (NOT -a) plus the --no-* flags: this unit runs as an unprivileged
-      # user, which cannot preserve owner/group/perms/times from the root-owned
-      # store tree. `-a` here fails with "Operation not permitted" on every dir.
+      # -rlp (NOT -a): --no-owner/--no-group because this unit is unprivileged
+      # and cannot set ownership from the root-owned store tree.
       #
-      # --chmod is REQUIRED, not cosmetic: store dirs are mode 0555, and rsync
-      # would otherwise create e.g. `vendor/` read-only and then fail to mkdir
-      # its children ("mkdir .../vendor/vlucas failed: Permission denied").
-      ${pkgs.rsync}/bin/rsync -rl --no-perms --no-owner --no-group \
+      # --chmod is REQUIRED, not cosmetic: store dirs/files are mode 0555/0444,
+      # so without it rsync creates e.g. `vendor/` read-only and cannot mkdir
+      # its children, and every copied file lands read-only.
+      #
+      # -p (perms) is ALSO REQUIRED: it makes rsync re-apply the --chmod modes to
+      # files that already exist, repairing in place a tree that an earlier
+      # deploy left read-only. Without it `database/database.sqlite` stays 0444
+      # and SQLite fails with "attempt to write a readonly database".
+      ${pkgs.rsync}/bin/rsync -rlp --no-owner --no-group \
         --chmod=D755,F644 \
         --exclude='/.env' \
         --exclude='/storage' \
