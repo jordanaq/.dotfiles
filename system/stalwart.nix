@@ -2,6 +2,15 @@
 # CalDAV/CardDAV/WebDAV). This IS the mail server; Bulwark (system/bulwark.nix)
 # is the web client that talks to it over JMAP.
 #
+# VERSION: 0.16.21 — prebuilt from the upstream GitHub release via the overlay
+# in system/stalwart-overlay.nix (nixpkgs still pins 0.15.5 as of 2026-09).
+# 0.16 redesigned the management layer: the on-disk config is now a tiny JSON
+# datastore descriptor, and EVERYTHING else (listeners, routing, domains,
+# accounts…) lives in the datastore as JMAP objects. The module + provisioning
+# below are vendored from open nixpkgs PR #552103 ("nixos/stalwart: update
+# module for 0.16+", head 8b05caa6) — the stock 0.15.5 module cannot drive
+# 0.16. DROP the vendored module + overlay once nixpkgs ships stalwart >= 0.16.
+#
 # OUTBOUND = RELAY, not direct-to-MX. Mail is handed to Scaleway Transactional
 #   Email (EU-hosted) instead of being delivered directly, so this box never
 #   needs Linode's blocked outbound SMTP ports (25/465/587). Scaleway is reached
@@ -19,12 +28,16 @@
 let
   mailHost = "mail.${domain}";
   acmeDir = "/var/lib/acme/${mailHost}";
-
-  # Credentials the relay needs, stored on the box (never in this public repo).
-  scalewayUserFile = "/etc/secrets/scaleway.smtp-user";
-  scalewayPassFile = "/etc/secrets/scaleway.smtp-password";
 in
 {
+  # Replace nixpkgs' built-in 0.15.5-era module (it emits TOML config and has
+  # no recovery/admin/provision options) with the vendored 0.16 module.
+  imports = [
+    ./stalwart-module/default.nix
+    ./stalwart-module/provision.nix
+  ];
+  disabledModules = [ "services/mail/stalwart.nix" ];
+
   # --- TLS: one certificate for the mail hostname, via Spaceship DNS-01 -----
   # No ports 80/443 involvement (DNS-01), so it does not collide with Caddy.
   # group = tls-mail, so both Stalwart and Caddy (the JMAP vhost) can read the
@@ -54,136 +67,139 @@ in
     # Fresh install on a 25.05 host, but we want the current module defaults
     # (RocksDB + `stalwart` user). See the comment above.
     stateVersion = "26.05";
+    # Prebuilt 0.16.21 from the overlay.
+    package = pkgs.stalwart;
+    # Public base URL (advertised in OAuth/OIDC/JMAP well-known documents;
+    # passed to the server as STALWART_PUBLIC_URL).
+    url = "https://${mailHost}";
     # Ports are opened explicitly in configuration.nix (this branch's
     # convention), not via the module's openFirewall.
     openFirewall = false;
 
+    # The 0.16 fallback administrator. NOTE: this is the PLAINTEXT password —
+    # not the sha512 hash 0.15 used; the unit feeds it to
+    # STALWART_RECOVERY_ADMIN verbatim. Kept out of this public repo, in
+    # /etc/secrets/stalwart-admin-password (readable by the stalwart user,
+    # e.g. root:stalwart 640).
+    admin = {
+      enable = true;
+      username = "admin";
+      passwordFile = "/etc/secrets/stalwart-admin-password";
+    };
+
+    # Recovery mode exists ONLY for the 0.15→0.16 migration (see the runbook
+    # in the nixos-server-deployment skill): set enable = true for the first
+    # 0.16 boot so the datastore migrates and export.json can be applied, then
+    # flip it back off. Normally it must stay false.
+    recovery = {
+      enable = false;
+      port = 8080;
+    };
+
+    # 0.16 on-disk config: describes ONLY the datastore (RocksDB, same layout
+    # the 0.15 install used — recovery mode migrates it in place). Every other
+    # setting is a JMAP object in the datastore, provisioned below.
     settings = {
-      server.hostname = mailHost;
+      "@type" = "RocksDb";
+      path = "/var/lib/stalwart/db";
+    };
 
-      # Base URL for every absolute URL Stalwart PUBLISHES — the OAuth
-      # authorization-server metadata, the OIDC discovery document and
-      # /.well-known/jmap. 0.15.5 derives those from the hostname plus the
-      # LISTENER's scheme and port, and our HTTP listener is loopback on :8080,
-      # so without this it advertises `http://mail.<domain>:8080` — plaintext on
-      # a port the world cannot reach. Browsers refuse to run an OAuth flow over
-      # plain HTTP, so Bulwark sign-in dies before it starts.
-      #
-      # The value is a Stalwart EXPRESSION, not a bare URL: the expression's own
-      # string literal is the single-quoted part, and TOML's double quotes wrap
-      # it. Writing `url = 'https://…'` (TOML literal-string syntax) silently
-      # strips those quotes and Stalwart then parses `https` as a variable —
-      # `Failed to parse setting "http.url": Invalid variable or constant
-      # "https"` — and keeps the wrong issuer.
-      #
-      # Sandbox-verified against 0.15.5 (control vs test):
-      #   unset -> "issuer":"http://<os-hostname>:8080"
-      #   set   -> "issuer":"https://mail.<domain>"
-      http.url = "'https://${mailHost}'";
+    # Declarative JMAP-object provisioning: applied idempotently at boot by
+    # `stalwart-cli apply` (stalwart-provision.service). The migration script
+    # does NOT convert listeners or routing, so without these the upgraded
+    # server would listen on nothing and deliver outbound mail directly
+    # (which Linode blocks).
+    provision = {
+      enable = true;
+      url = "http://127.0.0.1:8080";
 
-      # CORS is handled at Caddy (see the mail.<domain> vhost in system/caddy.nix):
-      # Bulwark (webmail.<domain>) is a different origin from the JMAP endpoint,
-      # so browsers preflight every call. Stalwart 0.15.5's
-      # server.http.permissive-cors was tried here (commit 505130b) and does NOT
-      # emit Access-Control-Allow-Origin on /api, / or /.well-known/jmap —
-      # verified live on the box — so the proxy injects the headers instead.
-
-      # Bootstrap administrator. Stalwart ships with NO accounts at all — the
-      # `--init` installer normally creates the first one, and we bypassed that
-      # by generating the config declaratively. Without this the WebUI at
-      # admin.<domain> has nobody to sign in as, and since every account
-      # operation goes through an authenticated JMAP call, no mailbox can ever
-      # be created.
-      #
-      # The secret is a sha512-crypt hash ($6$...), kept OUT of this public repo
-      # in /etc/secrets and pulled in by the config macro below. Generate it on
-      # the box with:   nix run nixpkgs#mkpasswd -- -m sha-512
-      # The file must exist and be readable by the `stalwart` user BEFORE the
-      # rebuild, or the macro fails and the service will not start.
-      #
-      # !! NO TRAILING NEWLINE !! The macro substitutes the file's bytes
-      # verbatim, so a trailing \n makes the stored secret "$6$...\n" and every
-      # login fails with "Incorrect username or password" while the server logs
-      # nothing at all. Use printf '%s' (NOT echo/tee-of-a-line) and check with
-      # `wc -l` == 0.
-      authentication."fallback-admin" = {
-        user = "admin";
-        secret = "%{file:/etc/secrets/stalwart-admin.hash}%";
-      };
-
-      certificate."mail" = {
-        cert = "%{file:${acmeDir}/fullchain.pem}%";
-        private-key = "%{file:${acmeDir}/key.pem}%";
-      };
-      server.tls = {
-        certificate = "mail";
-        enable = true;
-        implicit = false;
-      };
-
-      server.listener = {
-        # 25  — MTA-to-MTA inbound (mail from other servers)
-        smtp = {
-          protocol = "smtp";
-          bind = [ "0.0.0.0:25" ];
+      singletons = {
+        SystemSettings = {
+          defaultHostname = mailHost;
         };
-        # 587 — client submission, STARTTLS
-        submission = {
-          protocol = "smtp";
-          bind = [ "0.0.0.0:587" ];
-        };
-        # 465 — client submission, implicit TLS
-        submissions = {
-          protocol = "smtp";
-          bind = [ "0.0.0.0:465" ];
-          tls.implicit = true;
-        };
-        # 993 — IMAPS
-        imap = {
-          protocol = "imap";
-          bind = [ "0.0.0.0:993" ];
-          tls.implicit = true;
-        };
-        # 4190 — ManageSieve (Bulwark's filter UI + clients)
-        sieve = {
-          protocol = "manageSieve";
-          bind = [ "0.0.0.0:4190" ];
-        };
-        # JMAP + CalDAV/CardDAV + the webadmin panel. Loopback only; Caddy
-        # fronts mail.<domain> / admin.<domain> and terminates TLS.
-        http = {
-          protocol = "http";
-          bind = [ "127.0.0.1:8080" ];
+        # Local domain stays local, everything else → the Scaleway relay
+        # (MtaRoute 'scaleway' below). Same logic as 0.15's
+        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'scaleway'), now in the
+        # native Expression object form. The then/else values are expression
+        # literals, hence the inner quotes.
+        MtaOutboundStrategy = {
+          route = {
+            match = [
+              {
+                "if" = "rcpt_domain == '${domain}'";
+                "then" = "'local'";
+              }
+            ];
+            "else" = "'scaleway'";
+          };
         };
       };
 
-      # Local mail stays local; everything else goes out through the relay.
-      # Written with the `if_then(cond, a, b)` function as a plain expression
-      # STRING. Notes, both learned the hard way against 0.15.5:
-      #   * the {match:{...},else:...} object form does NOT survive this module's
-      #     TOML encoding — Stalwart rejects it ("...route.else found in 'if'
-      #     block") and then silently falls back to the default `mx` route
-      #     (direct delivery, which Linode blocks);
-      #   * `is_local_domain` in this build wants TWO arguments, so compare the
-      #     recipient domain directly instead.
-      queue.strategy.route = "if_then(rcpt_domain == '${domain}', 'local', 'scaleway')";
+      objects = {
+        # Listeners. The 0.16 protocol enum has no 'submission' variants:
+        # SMTP listeners serve both MX and client submission on their ports
+        # (587/465 are distinguished by the TLS setup / stage config).
+        NetworkListener = {
+          reconcile = false;
+          match = [ "name" ];
+          objects = {
+            smtp = {
+              name = "smtp";
+              protocol = "smtp";
+              bind = [ "0.0.0.0:25" ];
+            };
+            submission = {
+              name = "submission";
+              protocol = "smtp";
+              bind = [ "0.0.0.0:587" ];
+            };
+            submissions = {
+              name = "submissions";
+              protocol = "smtp";
+              bind = [ "0.0.0.0:465" ];
+              tlsImplicit = true;
+            };
+            imap = {
+              name = "imap";
+              protocol = "imap";
+              bind = [ "0.0.0.0:993" ];
+              tlsImplicit = true;
+            };
+            sieve = {
+              name = "sieve";
+              protocol = "manageSieve";
+              bind = [ "0.0.0.0:4190" ];
+            };
+            http = {
+              name = "http";
+              protocol = "http";
+              bind = [ "127.0.0.1:8080" ];
+            };
+          };
+        };
 
-      # Scaleway Transactional Email smarthost.
-      # MtaRoute is a TAGGED enum, so the variant is selected with "@type" =
-      # "Relay" (a bare `type = "relay"` is silently not a route at all), and
-      # the fields are camelCase per the schema. authSecret is a tagged secret
-      # object, not a plain string. 2465 = implicit TLS; chosen over 587/465
-      # precisely because Linode blocks those outbound ports on this account.
-      route."scaleway" = {
-        "@type" = "Relay";
-        address = "smtp.tem.scaleway.com";
-        port = 2465;
-        protocol = "smtp";
-        implicitTls = true;
-        authUsername = "%{file:${scalewayUserFile}}%";
-        authSecret = {
-          "@type" = "File";
-          filePath = scalewayPassFile;
+        # Scaleway smarthost. The secret is NOT in this repo: authSecret reads
+        # the file path at runtime (the same file the 0.15 config used). The
+        # username (Scaleway project ID) is also kept out of the repo — set it
+        # once in the WebUI after the migration (Settings › MTA › Outbound ›
+        # Routes → scaleway → authUsername).
+        MtaRoute = {
+          reconcile = false;
+          match = [ "name" ];
+          objects = {
+            scaleway = {
+              "@type" = "Relay";
+              name = "scaleway";
+              address = "smtp.tem.scaleway.com";
+              port = 2465;
+              protocol = "smtp";
+              implicitTls = true;
+              authSecret = {
+                "@type" = "File";
+                filePath = "/etc/secrets/scaleway.smtp-password";
+              };
+            };
+          };
         };
       };
     };
@@ -193,6 +209,8 @@ in
   #   /etc/secrets/spaceship.env           SPACESHIP_API_KEY=... / SPACESHIP_API_SECRET=...
   #   /etc/secrets/scaleway.smtp-user      Scaleway SMTP username (from the TEM panel)
   #   /etc/secrets/scaleway.smtp-password  Scaleway API secret key
+  #   /etc/secrets/stalwart-admin-password PLAINTEXT admin password (0.16; the
+  #                                         0.15 sha512 hash file is obsolete)
   # DKIM is signed by Scaleway (add the records it shows you), so Stalwart does
   # not hold a DKIM key here.
 }

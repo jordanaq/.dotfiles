@@ -147,4 +147,7 @@ in {
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
+  # Prebuilt Stalwart 0.16 + CLI (nixpkgs still pins 0.15.5). Drop once nixpkgs
+  # bumps past 0.16 — see the overlay's header comment.
+  nixpkgs.overlays = [ (import ./stalwart-overlay.nix) ];
 }
