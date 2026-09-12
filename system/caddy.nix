@@ -100,7 +100,20 @@
         '';
         extraConfig = ''
           root * /var/lib/notes-site
+
+          # Quartz links are EXTENSIONLESS (e.g. /computing/data-storage/mapreduce)
+          # while the files on disk are <name>.html. Plain file_server 404s those,
+          # so resolve path -> path.html -> path/index.html before serving.
+          # Without this every internal link in the site is broken.
+          try_files {path} {path}.html {path}/index.html
+
           file_server
+
+          # Use the site's own 404 page instead of Caddy's bare one.
+          handle_errors {
+            rewrite * /404.html
+            file_server
+          }
         '';
       };
 
