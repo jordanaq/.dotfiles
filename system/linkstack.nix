@@ -13,9 +13,14 @@
 #   Its installer is a browser wizard that WRITES to the install: it creates
 #   `.env` and populates `storage/`. A Nix store path is read-only, so the app
 #   must live in a mutable directory. `linkstack-setup` rsyncs the store copy
-#   into /var/lib/linkstack on every activation, PRESERVING the mutable paths
-#   (`.env`, `storage/`, `bootstrap/cache/`). Bumping `version` below is the
-#   upgrade mechanism; state survives because those paths are excluded.
+#   into /var/lib/linkstack on every activation, PRESERVING the app-owned
+#   mutable paths (`.env`, `INSTALLING`, `storage/`, `bootstrap/cache/`,
+#   `config/advanced-config.php`). Two of those still need a seed from the
+#   release on first run — the installer trigger and the non-mutable skeleton
+#   files shipped inside `storage/` — so the unit seeds them separately
+#   without ever overwriting what the app has written since. Bumping `version`
+#   below is the upgrade mechanism; state survives because those paths are
+#   excluded.
 #
 # SECURITY NOTE: because the docroot is the app root, the web server must NOT
 #   expose `.env` / the SQLite DB / the app source. On Apache that is the job of
@@ -138,8 +143,21 @@ in
       set -euo pipefail
 
       # Copy the code from the read-only store copy into the data dir.
-      # --exclude keeps the mutable paths the installer owns; no --delete, so
-      # user-uploaded themes/blocks are never clobbered on upgrade.
+      # --exclude keeps the APP-OWNED mutable paths out of the sync; no
+      # --delete, so user-uploaded themes/blocks are never clobbered on
+      # upgrade. Each exclusion is a path the app itself rewrites at runtime:
+      #
+      #   /.env                       seeded below, then owned by the installer
+      #   /INSTALLING                 installer trigger — seeded below, and the
+      #                               APP DELETES IT once setup completes, so
+      #                               re-shipping it would put a live install
+      #                               back into installer mode on every rebuild
+      #   /storage                    app-owned runtime state; the non-mutable
+      #                               skeleton inside it is re-seeded below
+      #   /bootstrap/cache            Laravel's regenerated caches
+      #   /config/advanced-config.php created at runtime by the self-heal in
+      #                               routes/web.php, then edited from the
+      #                               admin panel (see the seed block below)
       #
       # -rlp (NOT -a): --no-owner/--no-group because this unit is unprivileged
       # and cannot set ownership from the root-owned store tree.
@@ -155,14 +173,59 @@ in
       ${pkgs.rsync}/bin/rsync -rlp --no-owner --no-group \
         --chmod=D755,F644 \
         --exclude='/.env' \
+        --exclude='/INSTALLING' \
         --exclude='/storage' \
         --exclude='/bootstrap/cache' \
+        --exclude='/config/advanced-config.php' \
         ${linkstack}/ ${dataDir}/
+
+      # --- Seed the release's storage/ skeleton -----------------------------
+      # `storage/` is app-owned runtime state and is deliberately excluded
+      # above — but the release ALSO ships a few NON-mutable files inside it
+      # that the app needs in order to boot correctly. Excluding the whole tree
+      # dropped those too, and that is what broke the admin config page:
+      #
+      #   storage/app/ISINSTALLED
+      #     Gate for the post-install self-heal at the top of routes/web.php.
+      #     NOTHING in LinkStack ever writes this file — it ships in the release
+      #     and is only ever read — so if it is missing that block never runs
+      #     and config/advanced-config.php is never created. The admin panel's
+      #     config editor then dies on file_get_contents('config/advanced-config.php')
+      #     *before* you can reach the "Restore defaults" button — which is the
+      #     one thing that would have created the file. Chicken-and-egg, and
+      #     exactly the reported HTTP 500.
+      #
+      #   storage/templates/advanced-config.php
+      #     The source for that self-heal copy, and for the panel's "Restore
+      #     defaults" button (AdminController::editAC).
+      #
+      # --ignore-existing: create what is absent, never overwrite. Runtime state
+      # the app has since written (uploads, compiled views, sessions, logs,
+      # backups) is left strictly alone — which is also what preserves a
+      # user-edited storage/templates/advanced-config.php across upgrades.
+      #
+      # --chmod deliberately matches the modes systemd-tmpfiles declares below,
+      # so this does not churn the permissions of the storage dirs it walks
+      # through; only genuinely new entries get the declared modes.
+      ${pkgs.rsync}/bin/rsync -rlp --no-owner --no-group --ignore-existing \
+        --chmod=D750,F640 \
+        ${linkstack}/storage/ ${dataDir}/storage/
 
       # First run: seed .env from the shipped template (empty APP_KEY, sqlite).
       # The browser installer fills it in; it must be writable by the service.
       if [ ! -e ${dataDir}/.env ]; then
         install -m 0640 ${linkstack}/.env ${dataDir}/.env
+
+        # Installer trigger. LinkStack only wires up the browser installer while
+        # `INSTALLING` exists at the app root, and InstallerController DELETES
+        # it when setup finishes — hence --exclude above. Seeding it inside this
+        # same first-run guard (the app never removes .env, so this block runs
+        # exactly once) means a rebuild cannot drop a live install back into
+        # installer mode. That is not merely cosmetic: while INSTALLING exists
+        # the installer's catch-all registers `GET /skip`, which runs
+        # `db:seed AdminSeeder` and logs the caller in as `admin`.
+        # Deleting .env is therefore the documented way to force a re-install.
+        install -m 0640 ${linkstack}/INSTALLING ${dataDir}/INSTALLING
       fi
 
       # Generate the application encryption key on first run. Laravel throws
@@ -190,6 +253,11 @@ in
     "${dataDir}/storage/app/public".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/framework".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/framework/cache".d = { inherit user group; mode = "0750"; };
+    # Laravel's file cache driver writes here. The release ships this dir with
+    # only a .gitignore in it, so declare it next to its parent to keep the
+    # owner/mode authoritative here rather than inherited from whatever the
+    # release happens to contain.
+    "${dataDir}/storage/framework/cache/data".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/framework/sessions".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/framework/views".d = { inherit user group; mode = "0750"; };
     "${dataDir}/storage/logs".d = { inherit user group; mode = "0750"; };

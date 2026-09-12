@@ -95,7 +95,30 @@ Keep the two in sync.
 
 - **Data dir:** `/var/lib/linkstack` (owned `linkstack:linkstack`) — the mutable
   install. `linkstack-setup` rsyncs the store copy in on each activation and
-  **excludes** `.env`, `storage/`, `bootstrap/cache/`, so upgrades keep state.
+  **excludes** every path the app rewrites at runtime — `.env`, `INSTALLING`,
+  `storage/`, `bootstrap/cache/`, `config/advanced-config.php` — so a redeploy
+  never clobbers live state.
+- **Seeding.** Two excluded paths still need a first-run seed from the release,
+  and the unit does that without ever overwriting anything the app has since
+  written:
+  - `storage/` — excluded as runtime state, but the release ships a few
+    non-mutable files inside it. `storage/app/ISINSTALLED` gates the
+    post-install self-heal at the top of `routes/web.php`, and **nothing in
+    LinkStack ever writes it**; `storage/templates/advanced-config.php` is the
+    source that self-heal copies. Drop them and the self-heal never fires, so
+    `config/advanced-config.php` is never created and the admin config editor
+    500s on `file_get_contents('config/advanced-config.php')` — *before* you can
+    reach the "Restore defaults" button that would have created the file. The
+    unit re-seeds this skeleton with `--ignore-existing` (create if absent,
+    never overwrite).
+  - `INSTALLING` — seeded inside the same first-run guard as `.env`, because the
+    app *deletes* it once setup completes. Re-shipping it on every rebuild would
+    put a live install back into installer mode, where the installer's
+    catch-all exposes `GET /skip` (re-seeds `AdminSeeder`, logs you in as
+    `admin`). To deliberately re-run the installer, delete `.env`.
+- **Advanced config.** `config/advanced-config.php` is **app-owned** — LinkStack
+  creates it and the admin panel edits it. It is *not* managed by Nix; edit it at
+  `https://links.tsiru.pet/admin/config`, not in this repo.
 - **Upgrading:** bump `version` (and the `hash`) in `system/linkstack.nix`; the
   setup unit re-runs automatically. Compute a new hash with
   `nix store prefetch-file <release-url>`.
