@@ -61,6 +61,26 @@ in
     settings = {
       server.hostname = mailHost;
 
+      # Base URL for every absolute URL Stalwart PUBLISHES — the OAuth
+      # authorization-server metadata, the OIDC discovery document and
+      # /.well-known/jmap. 0.15.5 derives those from the hostname plus the
+      # LISTENER's scheme and port, and our HTTP listener is loopback on :8080,
+      # so without this it advertises `http://mail.<domain>:8080` — plaintext on
+      # a port the world cannot reach. Browsers refuse to run an OAuth flow over
+      # plain HTTP, so Bulwark sign-in dies before it starts.
+      #
+      # The value is a Stalwart EXPRESSION, not a bare URL: the expression's own
+      # string literal is the single-quoted part, and TOML's double quotes wrap
+      # it. Writing `url = 'https://…'` (TOML literal-string syntax) silently
+      # strips those quotes and Stalwart then parses `https` as a variable —
+      # `Failed to parse setting "http.url": Invalid variable or constant
+      # "https"` — and keeps the wrong issuer.
+      #
+      # Sandbox-verified against 0.15.5 (control vs test):
+      #   unset -> "issuer":"http://<os-hostname>:8080"
+      #   set   -> "issuer":"https://mail.<domain>"
+      http.url = "'https://${mailHost}'";
+
       # CORS is handled at Caddy (see the mail.<domain> vhost in system/caddy.nix):
       # Bulwark (webmail.<domain>) is a different origin from the JMAP endpoint,
       # so browsers preflight every call. Stalwart 0.15.5's
