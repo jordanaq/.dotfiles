@@ -27,10 +27,15 @@ let
 in
 {
   # Build scratch (vault clone + Quartz + node_modules) and the served docroot.
-  # `d` only creates what is missing; published files survive a rebuild.
+  # Owned by `tsiru` — NOT root — so the vault repo and the clone share the
+  # service's user. git refuses to touch a repo owned by someone else
+  # ("detected dubious ownership", exit 128) and the only ways around that are a
+  # global safe.directory or the blunt `safe.directory=*`; running as the owner
+  # removes the problem instead of overriding it. Caddy reads these
+  # world-readable (0755 dirs / 0644 files, the default umask).
   systemd.tmpfiles.rules = [
-    "d /var/lib/notes-build 0755 root root -"
-    "d /var/lib/notes-site 0755 root root -"
+    "d /var/lib/notes-build 0755 tsiru tsiru -"
+    "d /var/lib/notes-site 0755 tsiru tsiru -"
   ];
 
   systemd.services.notes-publish = {
@@ -43,6 +48,10 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${publish}/bin/notes-publish ${quartzSrc} ${quartzConfig}";
+      # Run as the vault's owner: no root needed (it only writes under /var/lib,
+      # which tmpfiles hands to this user) and no cross-user git ownership.
+      User = "tsiru";
+      Group = "tsiru";
       # The first run installs node_modules and builds from scratch.
       TimeoutStartSec = "30min";
       # ProtectHome=read-only below means /root and /home are not usable as a
@@ -51,7 +60,7 @@ in
         "HOME=/var/lib/notes-build"
         "npm_config_cache=/var/lib/notes-build/.npm"
       ];
-      # Hardening: it only ever writes under /var/lib; the vault repo is read.
+      # Hardening: writes only under /var/lib; the vault repo is read-only input.
       ProtectHome = "read-only";
       ProtectSystem = "strict";
       ReadWritePaths = [ "/var/lib/notes-build" "/var/lib/notes-site" ];
