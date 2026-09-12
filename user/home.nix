@@ -1,15 +1,10 @@
-# User wide setup
+# User wide setup (server edition)
 
 { config, pkgs, ... }:
 
 {
   imports = [
-    ./drivers
-    ./gui
-    ./media
-    ./programming
     ./sh
-    ./styling
     ./utils
   ];
 
@@ -31,6 +26,4 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
-
-  home.file.".face".source = ../assets/images/furry/avatar/selver_upscaled.jpg;
 }
