@@ -23,7 +23,7 @@
 #      not optional here, and Caddy refuses to start without it
 #      ("username and password cannot be empty or missing").
 #   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
-{ config, domain, inputs, ... }:
+{ config, domain, uname, inputs, ... }:
 
 {
   services.caddy = {
@@ -175,4 +175,11 @@
       # and answered "Incorrect username or password".
     };
   };
+
+  # notes.<domain> docroot, owned by the login user so the desktop publish step
+  # can rsync into it WITHOUT sudo (an unattended watcher cannot type a
+  # password). `d` creates it if absent and never touches existing contents.
+  systemd.tmpfiles.rules = [
+    "d /var/lib/notes-site 0755 ${uname} ${uname} -"
+  ];
 }
