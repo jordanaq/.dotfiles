@@ -5,7 +5,7 @@
 { lib, ... }:
 
 let
-  searxUrl = "http://127.0.0.1:8888/search";
+  searxUrl = "http://127.0.0.1:8889/search";
 
   # Editor LLM via the Nous Portal (OpenAI-compatible inference API). The API
   # key comes from NOUS_API_KEY, exported into the session env from the

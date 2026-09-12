@@ -8,7 +8,6 @@ let
 in {
   imports =
     [
-      ./searx.nix
       ./hardware-configuration.nix
     ];
 

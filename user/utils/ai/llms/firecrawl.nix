@@ -109,10 +109,12 @@ in {
         > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi
-    # Always refresh the SearXNG endpoint (host-derived) without touching the
-    # once-only secrets above, so a LAN IP change self-heals on next switch.
+    # SearXNG now lives on the cloud server, reached through the local
+    # auth-forwarding proxy (searx-proxy.nix, :8889) — same host-IP pattern
+    # so containers reach it via host.docker.internal. Refreshed every
+    # activation so a LAN IP change self-heals on next switch.
     sed -i '/^SEARXNG_ENDPOINT=/d' ${lib.escapeShellArg envFile} 2>/dev/null || true
-    printf 'SEARXNG_ENDPOINT=http://%s:8888\n' "$host_ip" >> ${lib.escapeShellArg envFile}
+    printf 'SEARXNG_ENDPOINT=http://%s:8889\n' "$host_ip" >> ${lib.escapeShellArg envFile}
   '';
 
   systemd.user.services.firecrawl = {

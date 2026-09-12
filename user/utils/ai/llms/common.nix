@@ -19,7 +19,10 @@ in {
   ollama = lib.getExe config.services.ollama.package;
   huggingfaceCli = "${pkgs.python3Packages.huggingface-hub}/bin/hf";
 
-  searxUrl = "http://${host}:8888/search";
+  # Remote SearXNG via the local auth-forwarding proxy (:8889). The server
+  # instance is behind Caddy basic-auth; the proxy adds the Authorization
+  # header (see searx-proxy.nix).
+  searxUrl = "http://127.0.0.1:8889/search";
 
   hermesPackage = inputs.hermes-agent.packages.${system}.default;
 
