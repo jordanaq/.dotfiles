@@ -18,6 +18,7 @@ in {
     ./hardware-configuration.nix
     ./constants.nix
     ./searx.nix
+    ./notes-site.nix
     ./caddy.nix
     ./calibre.nix
     ./linkstack.nix

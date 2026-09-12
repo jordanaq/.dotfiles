@@ -17,6 +17,15 @@
       url = "git+https://github.com/jordanaq/tsiru-pet?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Quartz v5 — the static-site generator behind notes.<domain>. Pinned by
+    # flake.lock (not `?ref=main`) so a rebuild is reproducible and an upstream
+    # release can never silently change the published site. `flake = false`:
+    # it is used as a source tree, not as a flake.
+    quartz = {
+      url = "github:jackyzha0/quartz";
+      flake = false;
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:

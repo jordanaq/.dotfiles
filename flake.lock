@@ -36,10 +36,27 @@
         "type": "indirect"
       }
     },
+    "quartz": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788695382,
+        "narHash": "sha256-rEFxuc1dIAN2sWBQCQvGZa3pkmskqpIcgclGLA0Iik4=",
+        "owner": "jackyzha0",
+        "repo": "quartz",
+        "rev": "f1fba3fc55cbf60a60a5d09c95a49c042cdab63a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jackyzha0",
+        "repo": "quartz",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
+        "quartz": "quartz",
         "tsiru-pet": "tsiru-pet"
       }
     },

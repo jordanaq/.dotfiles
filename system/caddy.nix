@@ -23,7 +23,7 @@
 #      not optional here, and Caddy refuses to start without it
 #      ("username and password cannot be empty or missing").
 #   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
-{ config, domain, uname, inputs, ... }:
+{ config, domain, inputs, ... }:
 
 {
   services.caddy = {
@@ -86,10 +86,11 @@
         '';
       };
 
-      # notes.<domain> — public Quartz export of the vault's Concepts/ folder
-      # (see ~/Documents/Projects/notes-site). Static files are rsynced to
-      # /var/lib/notes-site by the publish step; served read-only, no service,
-      # no runtime RAM. Deliberately PUBLIC.
+      # notes.<domain> — public Quartz export of the vault's Concepts/ folder.
+      # Built and published on THIS box (see system/notes-site.nix): a timer
+      # pulls the vault's bare remote, rebuilds, and rsyncs into the docroot.
+      # Static files only: no service, no PHP, no DB, zero runtime RAM.
+      # Deliberately PUBLIC.
       "notes.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-notes.${domain}.log {
@@ -176,10 +177,6 @@
     };
   };
 
-  # notes.<domain> docroot, owned by the login user so the desktop publish step
-  # can rsync into it WITHOUT sudo (an unattended watcher cannot type a
-  # password). `d` creates it if absent and never touches existing contents.
-  systemd.tmpfiles.rules = [
-    "d /var/lib/notes-site 0755 ${uname} ${uname} -"
-  ];
+  # The docroot itself is declared in system/notes-site.nix, together with the
+  # service that builds into it.
 }
