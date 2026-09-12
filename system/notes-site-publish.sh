@@ -32,8 +32,11 @@ stage_quartz() {
     return
   fi
   rm -rf "$BUILD/quartz"
-  # Store paths are read-only; --no-preserve=mode makes the copy writable.
-  cp -r --no-preserve=mode,ownership "$QUARTZ_SRC" "$BUILD/quartz"
+  # Store paths are read-only, but their MODE must survive the copy — dropping
+  # the exec bit makes quartz/bootstrap-cli.mjs unrunnable ("Permission
+  # denied"). Keep the mode, then add write for us.
+  cp -r --no-preserve=ownership "$QUARTZ_SRC" "$BUILD/quartz"
+  chmod -R u+rwX "$BUILD/quartz"
   cp "$QUARTZ_CFG" "$BUILD/quartz/quartz.config.yaml"
   printf '%s\n' "$QUARTZ_SRC" >"$stamp"
 }
