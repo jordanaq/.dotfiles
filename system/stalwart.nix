@@ -11,15 +11,15 @@
 # module for 0.16+", head 8b05caa6) — the stock 0.15.5 module cannot drive
 # 0.16. DROP the vendored module + overlay once nixpkgs ships stalwart >= 0.16.
 #
-# OUTBOUND = DIRECT-to-MX (MtaRoute 'mx' below). The Scaleway Transactional
-#   Email relay is retained only as a defined-but-unused fallback route.
-#   Verified 2026-09-13: outbound port 25 is OPEN from this box (live 220
-#   banners from Proton's and Gmail's MX), so the relay's original
-#   justification — Linode blocking 25/465/587 — no longer holds. Direct
-#   delivery is also REQUIRED for end-to-end encrypted mail: Scaleway TEM
-#   rejects PGP/MIME (its MIME allowlist forbids application/octet-stream and
-#   application/pgp-encrypted), so every encrypted message relayed through it
-#   bounced with a 501/5.6.0.
+# OUTBOUND = SMTP2GO relay (MtaRoute 'smtp2go' below), for reliable delivery
+#   from a young domain. SMTP2GO is MIME-agnostic, so end-to-end encrypted
+#   (PGP/MIME) mail passes through — unlike Scaleway TEM, whose fixed MIME
+#   allowlist forbids application/octet-stream and application/pgp-encrypted
+#   (every encrypted message relayed through it bounced with a 501/5.6.0).
+#   Direct-to-MX ('mx') and Scaleway ('scaleway') are retained as
+#   defined-but-unused fallback routes. Outbound port 25 is OPEN from this box
+#   (verified 2026-09-13), so direct delivery stays a viable fallback. An AWS
+#   SES route may replace SMTP2GO later; its DNS records are already published.
 #
 # TLS: the certificate for mail.<domain> is issued by security.acme using the
 #   Spaceship DNS-01 provider (lego, which security.acme drives, speaks the
@@ -136,11 +136,10 @@ in
           # field — without it apply fails with `defaultDomainId: required`.
           defaultDomainId = "#main";
         };
-        # Local domain stays local, everything else → direct-to-MX
-        # (MtaRoute 'mx' below). This was 'scaleway' (the TEM relay) until
-        # 2026-09-13; switched to direct because the relay rejects PGP/MIME.
-        # Same Expression form as 0.15's
-        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'mx'). The then/else
+        # Local domain stays local, everything else → the SMTP2GO relay
+        # (MtaRoute 'smtp2go' below). History: 'scaleway' (TEM) → 'mx' (direct)
+        # on 2026-09-13 → 'smtp2go' now. Same Expression form as 0.15's
+        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'smtp2go'). The then/else
         # values are expression literals, hence the inner quotes.
         MtaOutboundStrategy = {
           route = {
@@ -150,16 +149,16 @@ in
                 "then" = "'local'";
               }
             ];
-            "else" = "'mx'";
+            "else" = "'smtp2go'";
           };
         };
 
         # Auto-banning — Stalwart's own fail2ban. This is the ONLY defence that
-        # can see brute force against the mail protocols: IMAP/SMTP/Sieve on
+        # can see brute force against the mail protocols: IMAP/SMTP on
         # 993/465/587 connect straight to Stalwart and never touch Caddy, so the
         # fail2ban jail (which parses Caddy access logs) is structurally blind
-        # to them. Failures are counted across JMAP, IMAP, SMTP and ManageSieve
-        # and keyed on BOTH the source IP and the login name, so a distributed
+        # to them. Failures are counted across JMAP, IMAP and SMTP and keyed on
+        # BOTH the source IP and the login name, so a distributed
         # attack against a single account still trips it. Deliberately
         # conservative — 10 failures / 15 min -> 1 h ban — because the block
         # drops the connection and a false positive locks the owner out of their
@@ -274,11 +273,17 @@ in
               bind = [ "0.0.0.0:993" ];
               tlsImplicit = true;
             };
-            sieve = {
-              name = "sieve";
-              protocol = "manageSieve";
-              bind = [ "0.0.0.0:4190" ];
-            };
+            # NOTE: there is deliberately NO `sieve` (ManageSieve, 4190)
+            # listener. Pentest F-11 flagged it as config↔reality drift: the
+            # box listened and its own firewall allowed 4190, but Linode FILTERS
+            # the port upstream, so no internet client could ever reach it
+            # (verified 2026-09-13: open from the box to its own public IP,
+            # filtered from outside, while 993 works). Nothing in this stack
+            # speaks ManageSieve anyway — Bulwark and the WebUI manage Sieve
+            # over JMAP (Stalwart exposes SieveScript as a JMAP object) — so the
+            # listener only claimed a service that did not exist. Re-adding it
+            # is these three lines again, but it will stay tailnet-only until
+            # Linode stops filtering the port.
             http = {
               name = "http";
               protocol = "http";
@@ -289,23 +294,44 @@ in
 
         # Outbound routes.
         #
-        # 'mx' is the ACTIVE route: direct-to-MX via DNS MX resolution. It is
+        # 'smtp2go' is the ACTIVE route: an authenticated SMTP relay
+        # (mail.smtp2go.com:465, implicit TLS). Chosen for deliverability from a
+        # young domain; MIME-agnostic so PGP/MIME passes. authUsername is a
+        # plain string, committed directly — a login name is not a secret (0.16
+        # removed %{file:…}% macros, so there is no file variant anyway); the
+        # password is read from the file at runtime. SMTP2GO verifies the
+        # sending domain via three CNAMEs (dkim / return-path / click-tracking)
+        # and needs NO SPF include — its return-path CNAME covers SPF, so the
+        # apex SPF is untouched.
+        #
+        # 'mx' (direct-to-MX) is DORMANT — retained as a fallback. It is
         # deliberately IPv4-only (ipLookupStrategy = v4Only): the box has a
         # global IPv6 (2600:3c03::2000:3bff:fe72:8527) with NO PTR and no AAAA
         # on mail.<domain>, so sending over v6 would fail FCrDNS and spam-fold.
         # To enable IPv6 later: set the IPv6 rDNS at Linode + add an AAAA for
         # mail.<domain> + an ip6: term in SPF, then switch to v4ThenV6.
         #
-        # 'scaleway' (the TEM relay) is DORMANT — no longer selected by the
-        # outbound strategy; retained only as a ready fallback. Its secret is
-        # NOT in this repo: authSecret reads the file path at runtime. The
-        # username (Scaleway project ID) is also kept out of the repo — set it
-        # once in the WebUI (Settings › MTA › Outbound › Routes → scaleway →
-        # authUsername).
+        # 'scaleway' (the TEM relay) is DORMANT too. Its secret is NOT in this
+        # repo: authSecret reads the file path at runtime. The username
+        # (Scaleway project ID) is kept out of the repo — set it once in the
+        # WebUI (Settings › MTA › Outbound › Routes → scaleway → authUsername).
         MtaRoute = {
           reconcile = false;
           match = [ "name" ];
           objects = {
+            smtp2go = {
+              "@type" = "Relay";
+              name = "smtp2go";
+              address = "mail.smtp2go.com";
+              port = 465;
+              protocol = "smtp";
+              implicitTls = true;
+              authUsername = "tsiru.pet";
+              authSecret = {
+                "@type" = "File";
+                filePath = "/etc/secrets/smtp2go.smtp-password";
+              };
+            };
             mx = {
               "@type" = "Mx";
               name = "mx";
@@ -331,6 +357,7 @@ in
 
   # --- Secrets this module requires on the box (0600, created before switch) --
   #   /etc/secrets/spaceship.env           SPACESHIP_API_KEY=... / SPACESHIP_API_SECRET=...
+  #   /etc/secrets/smtp2go.smtp-password   SMTP2GO SMTP-user password (root:stalwart 640)
   #   /etc/secrets/scaleway.smtp-user      Scaleway SMTP username (from the TEM panel)
   #   /etc/secrets/scaleway.smtp-password  Scaleway API secret key
   #   /etc/secrets/stalwart-admin-password PLAINTEXT admin password (0.16; the

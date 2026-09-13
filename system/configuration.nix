@@ -96,10 +96,14 @@ in {
     #   465  → SMTP submission (implicit TLS)
     #   587  → SMTP submission (STARTTLS)
     #   993  → IMAPS (implicit TLS)
-    #   4190 → ManageSieve (Sieve filter management)
+    # NOT opened: 4190 (ManageSieve key management). Pentest F-11: Linode
+    #   filters the port upstream, so no internet client could reach it, and
+    #   nothing here speaks ManageSieve (Sieve is managed over JMAP). Opening it
+    #   only advertised a service that did not exist — see the listener note in
+    #   system/stalwart.nix.
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 80 443 25 465 587 993 4190 ];
+      allowedTCPPorts = [ 22 80 443 25 465 587 993 ];
     };
   };
 
