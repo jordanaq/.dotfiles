@@ -107,6 +107,32 @@ in {
     };
   };
 
+  # --- Secret file modes (self-healing) ---
+  # /etc/secrets/* are created by hand (see "Secrets" in the README), so nothing
+  # in Nix owns their permissions. On 2026-09-13 they had drifted to 0644 —
+  # leaving the Spaceship API key (i.e. full DNS control) readable by *every*
+  # local service user: linkstack's php-fpm, bulwark, vaultwarden, searxng. A
+  # DNS takeover is not a dead end either: it can point a vhost elsewhere or
+  # satisfy a Let's Encrypt DNS-01 challenge, which CAA does not prevent.
+  #
+  # `z` re-applies mode/owner on every boot and silently skips files that do not
+  # exist yet, so this is safe on a fresh box. Modes match what each consumer
+  # actually needs: root-only for the ones the service manager reads as root
+  # (systemd `EnvironmentFile`/lego), root:stalwart for the ones Stalwart reads
+  # itself at runtime.
+  systemd.tmpfiles.rules = [
+    "z /etc/secrets/bulwark.env 0600 root root"
+    "z /etc/secrets/caddy.env 0600 root root"
+    "z /etc/secrets/scaleway.smtp-password 0600 root root"
+    "z /etc/secrets/scaleway.smtp-user 0600 root root"
+    "z /etc/secrets/searxng.env 0600 root root"
+    "z /etc/secrets/spaceship.env 0600 root root"
+    "z /etc/secrets/vaultwarden.env 0600 root root"
+    "z /etc/secrets/smtp2go.smtp-password 0640 root stalwart"
+    "z /etc/secrets/stalwart-admin.hash 0640 root stalwart"
+    "z /etc/secrets/stalwart-admin-password 0640 root stalwart"
+  ];
+
   # --- SSH: key-only, single user ---
   services.openssh = {
     enable = true;
