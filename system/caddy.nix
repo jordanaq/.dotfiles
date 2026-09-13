@@ -31,21 +31,25 @@ let
   # came from calibre-web rather than the proxy — so the password manager,
   # webmail and the mail admin all went without.
   #
-  # `header` on its own ADDS a second STS field when the upstream already sent
-  # one — library.'s calibre-web sends its own, which produced two headers.
-  # Order happened to favour us, but RFC 6797 has a UA process only the FIRST
-  # STS header, so a duplicate leaves the effective policy to chance. Delete
-  # the upstream's field first, then set ours, so every response carries
-  # exactly one. includeSubDomains is safe here: every name with an A record
-  # serves HTTPS, the one exception (status.<domain>) is stale, pending
-  # deletion, and serves no HTTPS at all. Deliberately NO `preload` — that is
-  # a one-way door and needs submission to the preload list.
-  hsts = ''
-    header {
-      -Strict-Transport-Security
-      Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    }
-  '';
+  # TWO Caddy subtleties, both verified live against this box:
+  #
+  #   1. A plain `header Field value` set runs BEFORE the upstream writes its
+  #      headers, so calibre-web's own HSTS on library. survived alongside ours
+  #      — two STS fields in one response. RFC 6797 has a UA process only the
+  #      FIRST, so the effective policy was left to ordering luck.
+  #   2. Adding `-Strict-Transport-Security` to fix that defers the WHOLE block
+  #      (documented behaviour: a `-` op defers the handler), and the deferred
+  #      delete then ran after our own set — every vhost lost HSTS entirely.
+  #
+  # The documented idiom is `>` — "set with defer" — which applies the set
+  # AFTER the proxy writes its headers, overwriting the upstream's value.
+  # Exactly one STS field, ours, deterministically.
+  #
+  # includeSubDomains is safe here: every name with an A record serves HTTPS,
+  # the one exception (status.<domain>) is stale, pending deletion, and serves
+  # no HTTPS at all. Deliberately NO `preload` — that is a one-way door and
+  # needs submission to the preload list.
+  hsts = ''header >Strict-Transport-Security "max-age=31536000; includeSubDomains"'';
 in
 {
   services.caddy = {
