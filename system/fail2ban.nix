@@ -31,6 +31,13 @@
 
       settings = {
         enabled = true;
+        # CRITICAL: override the module's default `backend = systemd`. With the
+        # systemd backend fail2ban treats `logpath` as a *journal match*, not a
+        # file glob — it DISCARDS /var/log/caddy/*.log entirely (see
+        # fail2ban/client/jailreader.py: `if backend.startswith("systemd"): continue`).
+        # Caddy writes these access logs to files, not the journal, so the jail
+        # matched nothing and never banned (pentest F-15). `auto` = file backend.
+        backend = "auto";
         logpath = "/var/log/caddy/*.log";
         maxretry = 5;
         findtime = "10m";
