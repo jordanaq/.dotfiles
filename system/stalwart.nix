@@ -109,6 +109,17 @@ in
     # does NOT convert listeners or routing, so without these the upgraded
     # server would listen on nothing and deliver outbound mail directly
     # (which Linode blocks).
+    #
+    # ⚠ CHANGING ANYTHING BELOW NEEDS A RESTART TO TAKE EFFECT. Settings live in
+    # the datastore, but the running server loads them into memory at startup —
+    # it only reloads when a change is made in-process (e.g. via the WebUI).
+    # `stalwart-cli apply` writes the datastore from a SEPARATE process, so the
+    # live server never notices: the config looks applied (and the unit reports
+    # success) while the old settings stay active. This has already bitten us
+    # once with `Http.useXForwarded` + the Security auto-ban settings.
+    #   After any change here:  sudo systemctl restart stalwart
+    # (Automating this was considered and deliberately declined — see the
+    # 2026-09-13 pentest remediation notes.)
     provision = {
       enable = true;
       url = "http://127.0.0.1:8080";
