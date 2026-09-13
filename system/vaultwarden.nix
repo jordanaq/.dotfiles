@@ -14,6 +14,9 @@
 # would break OPDS on the calibre vhost.) TLS comes from Caddy's own ACME over
 # HTTP-01 on :80 — so the `vault` DNS A record must be DNS-ONLY (grey cloud).
 #
+# The web vault is re-skinned to Catppuccin Macchiato (pink accent) — see
+# system/vaultwarden-catppuccin-macchiato.scss and the tmpfiles rules at the end.
+#
 # Secrets (NOT in this public repo):
 #   /etc/secrets/vaultwarden.env   →   ADMIN_TOKEN=<long random>
 #                                      SMTP_USERNAME=vault@<domain>
@@ -95,6 +98,12 @@
 
       # NOTE: no USE_SENDMAIL — using SMTP keeps the module's strict systemd
       # sandbox (USE_SENDMAIL=true would relax PrivateUsers/NoNewPrivileges).
+
+      # --- Theme: Catppuccin Macchiato ---------------------------------------
+      # Where Vaultwarden looks for `scss/user.vaultwarden.scss.hbs`. The module
+      # default is already DATA_FOLDER/templates, but we set it explicitly so the
+      # contract is visible next to the tmpfiles rules that install the file.
+      TEMPLATES_FOLDER = "/var/lib/vaultwarden/templates";
     };
 
     # Backups are deliberately NOT enabled yet. See the Discord reminder job
@@ -103,4 +112,27 @@
     # timer that runs `sqlite3 .backup` + copies attachments):
     #   backupDir = "/var/backup/vaultwarden";
   };
+
+  # --- Catppuccin Macchiato re-skin -----------------------------------------
+  # Vaultwarden compiles templates/scss/user.vaultwarden.scss.hbs and serves the
+  # result as /css/vaultwarden.css, which the web vault loads AFTER its own
+  # stylesheet (styles.<hash>.css) — so the whole UI can be re-themed with no CSP
+  # change, no HTML patching, and no custom web-vault build.
+  #
+  # `L+` symlinks to the file in the Nix store (the store copy is world-readable;
+  # the service only needs to read it, not write it). A symlink rather than a
+  # copy is deliberate: tmpfiles `C` leaves an existing destination alone, so
+  # palette edits would never reach the box — `L+` replaces the link on every
+  # rebuild.
+  #
+  # The directories are 0755 and root-owned: they hold nothing but a public
+  # stylesheet, and deliberately NOT naming the vaultwarden user here keeps these
+  # rules working regardless of whether tmpfiles runs before that user exists.
+  # (Ownership of a symlink is irrelevant anyway — the target's permissions
+  # govern reads.)
+  systemd.tmpfiles.rules = [
+    "d /var/lib/vaultwarden/templates 0755 root root -"
+    "d /var/lib/vaultwarden/templates/scss 0755 root root -"
+    "L+ /var/lib/vaultwarden/templates/scss/user.vaultwarden.scss.hbs - - - - ${./vaultwarden-catppuccin-macchiato.scss}"
+  ];
 }
