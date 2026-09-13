@@ -11,11 +11,15 @@
 # module for 0.16+", head 8b05caa6) — the stock 0.15.5 module cannot drive
 # 0.16. DROP the vendored module + overlay once nixpkgs ships stalwart >= 0.16.
 #
-# OUTBOUND = RELAY, not direct-to-MX. Mail is handed to Scaleway Transactional
-#   Email (EU-hosted) instead of being delivered directly, so this box never
-#   needs Linode's blocked outbound SMTP ports (25/465/587). Scaleway is reached
-#   on port 2465 (implicit TLS), which Linode does NOT block. This is why there
-#   is no port-25 support ticket and no IP-reputation warm-up anywhere here.
+# OUTBOUND = DIRECT-to-MX (MtaRoute 'mx' below). The Scaleway Transactional
+#   Email relay is retained only as a defined-but-unused fallback route.
+#   Verified 2026-09-13: outbound port 25 is OPEN from this box (live 220
+#   banners from Proton's and Gmail's MX), so the relay's original
+#   justification — Linode blocking 25/465/587 — no longer holds. Direct
+#   delivery is also REQUIRED for end-to-end encrypted mail: Scaleway TEM
+#   rejects PGP/MIME (its MIME allowlist forbids application/octet-stream and
+#   application/pgp-encrypted), so every encrypted message relayed through it
+#   bounced with a 501/5.6.0.
 #
 # TLS: the certificate for mail.<domain> is issued by security.acme using the
 #   Spaceship DNS-01 provider (lego, which security.acme drives, speaks the
@@ -108,7 +112,7 @@ in
     # `stalwart-cli apply` (stalwart-provision.service). The migration script
     # does NOT convert listeners or routing, so without these the upgraded
     # server would listen on nothing and deliver outbound mail directly
-    # (which Linode blocks).
+    # (see the OUTBOUND note at the top — direct is now the intended path).
     #
     # ⚠ CHANGING ANYTHING BELOW NEEDS A RESTART TO TAKE EFFECT. Settings live in
     # the datastore, but the running server loads them into memory at startup —
@@ -132,11 +136,12 @@ in
           # field — without it apply fails with `defaultDomainId: required`.
           defaultDomainId = "#main";
         };
-        # Local domain stays local, everything else → the Scaleway relay
-        # (MtaRoute 'scaleway' below). Same logic as 0.15's
-        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'scaleway'), now in the
-        # native Expression object form. The then/else values are expression
-        # literals, hence the inner quotes.
+        # Local domain stays local, everything else → direct-to-MX
+        # (MtaRoute 'mx' below). This was 'scaleway' (the TEM relay) until
+        # 2026-09-13; switched to direct because the relay rejects PGP/MIME.
+        # Same Expression form as 0.15's
+        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'mx'). The then/else
+        # values are expression literals, hence the inner quotes.
         MtaOutboundStrategy = {
           route = {
             match = [
@@ -145,7 +150,7 @@ in
                 "then" = "'local'";
               }
             ];
-            "else" = "'scaleway'";
+            "else" = "'mx'";
           };
         };
 
@@ -282,15 +287,30 @@ in
           };
         };
 
-        # Scaleway smarthost. The secret is NOT in this repo: authSecret reads
-        # the file path at runtime (the same file the 0.15 config used). The
+        # Outbound routes.
+        #
+        # 'mx' is the ACTIVE route: direct-to-MX via DNS MX resolution. It is
+        # deliberately IPv4-only (ipLookupStrategy = v4Only): the box has a
+        # global IPv6 (2600:3c03::2000:3bff:fe72:8527) with NO PTR and no AAAA
+        # on mail.<domain>, so sending over v6 would fail FCrDNS and spam-fold.
+        # To enable IPv6 later: set the IPv6 rDNS at Linode + add an AAAA for
+        # mail.<domain> + an ip6: term in SPF, then switch to v4ThenV6.
+        #
+        # 'scaleway' (the TEM relay) is DORMANT — no longer selected by the
+        # outbound strategy; retained only as a ready fallback. Its secret is
+        # NOT in this repo: authSecret reads the file path at runtime. The
         # username (Scaleway project ID) is also kept out of the repo — set it
-        # once in the WebUI after the migration (Settings › MTA › Outbound ›
-        # Routes → scaleway → authUsername).
+        # once in the WebUI (Settings › MTA › Outbound › Routes → scaleway →
+        # authUsername).
         MtaRoute = {
           reconcile = false;
           match = [ "name" ];
           objects = {
+            mx = {
+              "@type" = "Mx";
+              name = "mx";
+              ipLookupStrategy = "v4Only";
+            };
             scaleway = {
               "@type" = "Relay";
               name = "scaleway";
