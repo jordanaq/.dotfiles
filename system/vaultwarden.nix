@@ -29,11 +29,17 @@
 #     ⚠ systemd reads EnvironmentFile ONLY at service start — after editing this
 #     file you MUST `sudo systemctl restart vaultwarden` or the change is ignored.
 #
-# Bootstrap — registration is CLOSED, so there is no self-signup:
-#   1. Open https://vault.<domain>/admin and enter ADMIN_TOKEN.
-#   2. Either use the admin panel's "Invite" (the email is delivered through the
-#      local Stalwart below), or temporarily set SIGNUPS_ALLOWED = true, create
-#      your account, then set it straight back to false.
+# Bootstrap — registration is CLOSED and invitations are now OFF (the account
+# was created 2026-09-12), so there is no way to add a user without temporarily
+# re-enabling INVITATIONS_ALLOWED (or SIGNUPS_ALLOWED) and rebuilding.
+# The admin panel itself is TAILNET-ONLY — the public vhost blocks /admin (see
+# system/caddy.nix). Reach it by serving the app on the tailnet, one-time on the
+# box:
+#   sudo tailscale serve --bg --https=10000 http://127.0.0.1:8222
+#   ->  https://tsiru-cloud.<tailnet>.ts.net:10000/admin
+# ⚠ Use 10000. 8443 is Uptime Kuma, and --https=443 makes tailscaled bind the
+#   tailnet address on :443, which collides with Caddy's wildcard bind and takes
+#   EVERY public vhost down (see system/uptime-kuma.nix).
 { config, domain, pkgs, ... }:
 
 {
@@ -67,6 +73,22 @@
       # additions are admin-initiated invitations only. Never open signups on a
       # public vhost.
       SIGNUPS_ALLOWED = false;
+
+      # --- Hardening (2026-09-12) --------------------------------------------
+      # The single account now exists, so close user creation ENTIRELY — no
+      # self-signup (above) AND no admin invitations. Re-open temporarily if a
+      # second user is ever needed.
+      INVITATIONS_ALLOWED = false;
+      # Password hints are EMAILED to anyone who requests one for a known
+      # address — information disclosure for zero benefit. Off.
+      PASSWORD_HINTS_ALLOWED = false;
+      # Single-user vault: no Send (public file-sharing surface) and no
+      # emergency access (meaningless with one account).
+      SENDS_ALLOWED = false;
+      EMERGENCY_ACCESS_ALLOWED = false;
+      # NOTE: icon downloads deliberately stay ENABLED (favicons come from the
+      # sites you save, proxied by this server). Flip DISABLE_ICON_DOWNLOAD to
+      # true for privacy at the cost of losing favicons.
 
       # --- Email: authenticated submission to the local Stalwart --------------
       # Used for 2FA-by-email, password hints, and admin invitations. Stalwart

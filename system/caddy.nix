@@ -229,7 +229,24 @@
           # WebSocket upgrade for live sync is handled automatically by
           # reverse_proxy. Vaultwarden reads the client IP from
           # X-Forwarded-For, which Caddy sets.
-          reverse_proxy 127.0.0.1:8222
+          #
+          # ⚠ Vaultwarden's IP_HEADER defaults to X-Real-IP, NOT X-Forwarded-For
+          # — so without the header_up below every client looks like 127.0.0.1
+          # (Caddy's own address) and Vaultwarden's rate limits become GLOBAL
+          # rather than per-client: 3 failed /admin logins in 5 min would lock
+          # the panel for everyone. Caddy OVERWRITES X-Real-IP with the true
+          # peer, unlike X-Forwarded-For, which it appends to (spoofable).
+          reverse_proxy 127.0.0.1:8222 {
+            header_up X-Real-IP {remote_host}
+          }
+
+          # /admin is TAILNET-ONLY: it can create users and read diagnostics, so
+          # the public vhost refuses it outright. Reach it over Tailscale
+          # instead — see the "admin over the tailnet" runbook in
+          # system/vaultwarden.nix. (`respond` is ordered before `reverse_proxy`
+          # by Caddy's default directive order, so this wins.)
+          @admin path /admin /admin/*
+          respond @admin 403
         '';
       };
 
