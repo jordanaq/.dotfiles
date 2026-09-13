@@ -108,8 +108,8 @@ in {
   };
 
   # --- Secret file modes (self-healing) ---
-  # /etc/secrets/* are created by hand (see "Secrets" in the README), so nothing
-  # in Nix owns their permissions. On 2026-09-13 they had drifted to 0644 —
+  # /etc/secrets/* are created by hand (see "Files to create" in the README), so
+  # nothing in Nix owns their permissions. On 2026-09-13 they had drifted to 0644 —
   # leaving the Spaceship API key (i.e. full DNS control) readable by *every*
   # local service user: linkstack's php-fpm, bulwark, vaultwarden, searxng. A
   # DNS takeover is not a dead end either: it can point a vhost elsewhere or
@@ -129,7 +129,6 @@ in {
     "z /etc/secrets/spaceship.env 0600 root root"
     "z /etc/secrets/vaultwarden.env 0600 root root"
     "z /etc/secrets/smtp2go.smtp-password 0640 root stalwart"
-    "z /etc/secrets/stalwart-admin.hash 0640 root stalwart"
     "z /etc/secrets/stalwart-admin-password 0640 root stalwart"
   ];
 

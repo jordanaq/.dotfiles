@@ -53,18 +53,21 @@ sudo nixos-generate-config --show-hardware-config
 
 ## Files to create
 
-All live on the server, `chmod 600`, and **must exist before the first
-switch** — `EnvironmentFile` is not optional and the services refuse to start
-without them.
+All live on the server and **must exist before the first switch** —
+`EnvironmentFile` is not optional and the services refuse to start without
+them. Their owner/mode is **not** a hand-step: `systemd.tmpfiles.rules` in
+`system/configuration.nix` re-apply it on every boot (`z`), so a drifted
+permission self-heals. Most are `0600 root:root`; the ones Stalwart reads
+itself at runtime are `0640 root:stalwart` (called out per row below).
 
 | File | Variables | Purpose |
 |---|---|---|
 | `/etc/secrets/searxng.env` | `SEARXNG_SECRET`, `EXA_API_KEY` | SearXNG session secret + Exa search engine key |
 | `/etc/secrets/caddy.env` | `CADDY_AUTH_HASH` | bcrypt password hash for the basic-auth user `tsiru` |
 | `/etc/secrets/spaceship.env` | `SPACESHIP_API_KEY`, `SPACESHIP_API_SECRET` | Spaceship API credentials — let `security.acme` (lego) solve the `mail.` DNS-01 challenge |
-| `/etc/secrets/smtp2go.smtp-password` | SMTP2GO API key | **Active** outbound relay — read by the `stalwart` user at runtime |
+| `/etc/secrets/smtp2go.smtp-password` | SMTP2GO API key | **Active** outbound relay — read by the `stalwart` user at runtime (`0640 root:stalwart`) |
 | `/etc/secrets/scaleway.smtp-password` | Scaleway API secret key | Dormant fallback route (Scaleway TEM) — not used while SMTP2GO is active |
-| `/etc/secrets/stalwart-admin-password` | plaintext admin password | Stalwart's fallback administrator (`admin`), read by the `stalwart` user (e.g. `root:stalwart 640`) |
+| `/etc/secrets/stalwart-admin-password` | plaintext admin password | Stalwart's fallback administrator (`admin`), read by the `stalwart` user (`0640 root:stalwart`) |
 | `/etc/secrets/bulwark.env` | `SESSION_SECRET` | Bulwark session encryption (64+ random chars) |
 | `/etc/secrets/vaultwarden.env` | `ADMIN_TOKEN`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Vaultwarden admin token + outbound mail via Stalwart |
 
@@ -282,9 +285,10 @@ sudo tailscale serve --bg --https=10000 http://127.0.0.1:8222   # Vaultwarden /a
 > (Uptime Kuma) or `10000` (Vaultwarden).
 
 Uptime Kuma (`https://<box>.<tailnet>.ts.net:8443`) is first-run-setup, then
-loopback-only; the old public `status.`/`status.` vhost was removed in favour of
-tailnet-only access. An SSH tunnel (`ssh -L 3001:127.0.0.1:3001 tsiru.pet`) also
-works.
+loopback-only; the old public `status.` vhost was removed in favour of
+tailnet-only access (the stale `status.tsiru.pet` DNS record is still pending
+deletion in Spaceship — pentest F-12). An SSH tunnel
+(`ssh -L 3001:127.0.0.1:3001 tsiru.pet`) also works.
 
 ## Usage
 

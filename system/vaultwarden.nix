@@ -92,8 +92,8 @@
 
       # --- Email: authenticated submission to the local Stalwart --------------
       # Used for 2FA-by-email, password hints, and admin invitations. Stalwart
-      # routes non-local recipients out via the Scaleway relay, so this box
-      # never needs Linode's blocked outbound SMTP ports.
+      # relays non-local recipients out via SMTP2GO, so this box never needs
+      # Linode's blocked outbound SMTP ports.
       #
       # AUTHENTICATED on :587 (STARTTLS), not plaintext :25: an unauthenticated
       # loopback submission has no aligned SPF/DKIM, so Stalwart's spam filter
