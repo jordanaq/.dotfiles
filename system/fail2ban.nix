@@ -58,9 +58,16 @@
         enabled = true;
         backend = "auto";
         logpath = "/var/log/caddy/*.log";
-        maxretry = 6;
+        # maxretry 12 over 10 min, ban 30m. Deliberately loose: a browser retry
+        # loop or a fumbled basic-auth password on search. can produce a handful
+        # of 401s in seconds, and a too-tight threshold locks the owner out of
+        # every vhost for an hour (that happened during the 2026-09-13 pentest
+        # verification — 15 probes from the owner's own IP tripped the old
+        # maxretry=6). 12 guesses per 10 minutes is still hopeless for brute
+        # force, so the lost strictness costs nothing real.
+        maxretry = 12;
         findtime = "10m";
-        bantime = "1h";
+        bantime = "30m";
         # Never ban our own networks: loopback (Caddy -> itself, and the box's
         # own tooling) and the Tailscale CGNAT range (every device of Tsiru's
         # that can reach the box's admin surfaces). Without the tailnet entry a
