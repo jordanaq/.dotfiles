@@ -16,15 +16,15 @@ desktop/GUI/GPU stack and keeps only what the server needs.
 | **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/linkstack.nix`. |
 | **Personal site** | `https://tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. No auth. |
 | **Notes site** | `https://notes.tsiru.pet` | Public Quartz export of the vault's `Concepts/` folder, built **and** published on this box by `notes-publish.service`. Static files only. See `system/notes-site.nix`. |
-| **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, ManageSieve `4190`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relaid through Scaleway TEM; TLS via `security.acme` DNS-01. See `system/stalwart.nix`. |
+| **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/stalwart.nix`. |
 | **Bulwark** | `https://webmail.tsiru.pet` | Self-hosted JMAP webmail client for Stalwart (prebuilt Node bundle — no PHP/DB; accounts live in Stalwart). See `system/bulwark.nix`. |
 | **Vaultwarden** | `https://vault.tsiru.pet` | Bitwarden-compatible password manager (SQLite). Registration closed; `/admin` is tailnet-only. See `system/vaultwarden.nix`. |
 | **Uptime Kuma** | tailnet only (`:8443`) | Status/heartbeat monitor. Loopback-only, reached via `tailscale serve` — deliberately **not** in Caddy. See `system/uptime-kuma.nix`. |
 | **Tailscale** | — | Private mesh access to the box (no extra public ports). Purely additive. See `system/tailscale.nix`. |
-| **fail2ban** | — | Bans IPs tripping repeated `401`/`403` on the Calibre vhosts (reads Caddy's JSON access logs). See `system/fail2ban.nix`. |
+| **fail2ban** | — | Bans IPs tripping repeated `401`/`403`, or a 4xx on an auth endpoint, across **all** Caddy vhosts (`/var/log/caddy/*.log`; file backend). See `system/fail2ban.nix`. |
 | **Caddy** | `:80`, `:443` | Reverse proxy + automatic Let's Encrypt TLS (HTTP-01 on `:80`; the `mail.` cert comes from `security.acme` DNS-01, see below). |
 | **OpenSSH** | `:22` | Key-only, `tsiru` only (`PasswordAuthentication=false`, `PermitRootLogin=no`). |
-| **Firewall** | — | Default deny. Open TCP: `22`, `80`, `443`, `25`, `465`, `587`, `993`, `4190`; UDP: `41641` (WireGuard/Tailscale). |
+| **Firewall** | — | Default deny. Open TCP: `22`, `80`, `443`, `25`, `465`, `587`, `993`; UDP: `41641` (WireGuard/Tailscale). ManageSieve `4190` is deliberately **not** opened — Linode filters it upstream, so it can never be reached from the internet (pentest F-11). |
 
 ## Installation
 
@@ -62,7 +62,8 @@ without them.
 | `/etc/secrets/searxng.env` | `SEARXNG_SECRET`, `EXA_API_KEY` | SearXNG session secret + Exa search engine key |
 | `/etc/secrets/caddy.env` | `CADDY_AUTH_HASH` | bcrypt password hash for the basic-auth user `tsiru` |
 | `/etc/secrets/spaceship.env` | `SPACESHIP_API_KEY`, `SPACESHIP_API_SECRET` | Spaceship API credentials — let `security.acme` (lego) solve the `mail.` DNS-01 challenge |
-| `/etc/secrets/scaleway.smtp-password` | Scaleway API secret key | Relays Stalwart's outbound mail via Scaleway TEM |
+| `/etc/secrets/smtp2go.smtp-password` | SMTP2GO API key | **Active** outbound relay — read by the `stalwart` user at runtime |
+| `/etc/secrets/scaleway.smtp-password` | Scaleway API secret key | Dormant fallback route (Scaleway TEM) — not used while SMTP2GO is active |
 | `/etc/secrets/stalwart-admin-password` | plaintext admin password | Stalwart's fallback administrator (`admin`), read by the `stalwart` user (e.g. `root:stalwart 640`) |
 | `/etc/secrets/bulwark.env` | `SESSION_SECRET` | Bulwark session encryption (64+ random chars) |
 | `/etc/secrets/vaultwarden.env` | `ADMIN_TOKEN`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Vaultwarden admin token + outbound mail via Stalwart |
@@ -86,7 +87,8 @@ printf 'SMTP_USERNAME=vault@tsiru.pet\nSMTP_PASSWORD=<that mailbox password>\n' 
 `/etc/secrets/scaleway.smtp-user` is **read by nothing** — 0.16 removed the
 `%{file:…}%` macros, so the Scaleway username is a plain string set **once** in
 the Stalwart WebUI (Settings › MTA › Outbound › Routes › `scaleway` → Username);
-provisioning's upsert preserves it.
+provisioning's upsert preserves it. Both that route and `mx` are **dormant** now
+(SMTP2GO is the active relay, see the Stalwart notes below).
 
 Generate the Caddy hash with:
 
@@ -220,13 +222,21 @@ the panel).
   (`@type = RocksDb`, `/var/lib/stalwart/db`); listeners, routing, domains, and
   accounts live *in the datastore as JMAP objects*, provisioned idempotently at
   boot by `stalwart-cli apply` (`system/stalwart-module/provision.nix`). That
-  provisioning covers SMTP `25`/`465`/`587`, IMAPS `993`, ManageSieve `4190`,
-  the loopback HTTP listener (`127.0.0.1:8080`, fronted by Caddy), and the
-  Scaleway relay route.
-- **Outbound = relay, not direct-to-MX.** Mail goes to **Scaleway Transactional
-  Email** (port `2465`, implicit TLS) instead of being delivered directly, so
-  the box never needs Linode's blocked outbound SMTP ports (`25`/`465`/`587`)
-  and there is no IP-reputation warm-up.
+  provisioning covers SMTP `25`/`465`/`587`, IMAPS `993`, the loopback HTTP
+  listener (`127.0.0.1:8080`, fronted by Caddy), and the outbound routes.
+  There is deliberately **no** ManageSieve listener — see below.
+  - **No ManageSieve (`4190`).** Pentest F-11 removed both the listener and its
+    firewall opening. Linode filters the port upstream, so no internet client
+    could ever reach it, and nothing here speaks ManageSieve: Bulwark and the
+    WebUI both manage Sieve over JMAP. Re-adding the listener would be
+    tailnet-only until Linode stops filtering the port.
+  - **Outbound = SMTP2GO relay.** Mail goes to `mail.smtp2go.com:465` (implicit
+    TLS, authenticated) rather than direct-to-MX. SMTP2GO is MIME-agnostic — so
+    end-to-end encrypted (PGP/MIME) mail passes, which is what forced the move
+    off Scaleway TEM — and delivery is reliable from a young domain. Direct-to-MX
+    (`mx`, IPv4-only) and Scaleway TEM remain as **dormant** fallback routes.
+    Outbound port `25` is open from this box (verified 2026-09-13), so direct
+    delivery stays viable if the relay is ever dropped.
 - **Bulwark** is a prebuilt standalone Node bundle (no build step, no DB)
   unpacked to `/var/lib/bulwark/app`; mutable state lives outside the app tree in
   `admin/` + `state/`, so a version bump replaces the code cleanly. It talks JMAP
