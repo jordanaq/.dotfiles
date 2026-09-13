@@ -16,10 +16,15 @@
 #
 # Secrets (NOT in this public repo):
 #   /etc/secrets/vaultwarden.env   →   ADMIN_TOKEN=<long random>
+#                                      SMTP_USERNAME=vault@<domain>
+#                                      SMTP_PASSWORD=<that mailbox's password>
 #     Generate + create (before `nixos-rebuild switch`):
 #       sudo install -m 600 /dev/null /etc/secrets/vaultwarden.env
 #       printf 'ADMIN_TOKEN=%s\n' "$(openssl rand -base64 48)" | sudo tee /etc/secrets/vaultwarden.env
+#       printf 'SMTP_USERNAME=vault@<domain>\nSMTP_PASSWORD=<pw>\n' | sudo tee -a /etc/secrets/vaultwarden.env
 #     The admin panel is then https://vault.<domain>/admin (paste the token).
+#     ⚠ systemd reads EnvironmentFile ONLY at service start — after editing this
+#     file you MUST `sudo systemctl restart vaultwarden` or the change is ignored.
 #
 # Bootstrap — registration is CLOSED, so there is no self-signup:
 #   1. Open https://vault.<domain>/admin and enter ADMIN_TOKEN.
@@ -60,14 +65,24 @@
       # public vhost.
       SIGNUPS_ALLOWED = false;
 
-      # --- Email: relay through the local Stalwart (system/stalwart.nix) -----
-      # Used for 2FA-by-email, password hints, and admin invitations.
-      # Stalwart listens on :25 and its outbound strategy routes every
-      # non-local recipient through the Scaleway relay — so this box never has
-      # to reach Linode's blocked outbound SMTP ports.
+      # --- Email: authenticated submission to the local Stalwart --------------
+      # Used for 2FA-by-email, password hints, and admin invitations. Stalwart
+      # routes non-local recipients out via the Scaleway relay, so this box
+      # never needs Linode's blocked outbound SMTP ports.
+      #
+      # AUTHENTICATED on :587 (STARTTLS), not plaintext :25: an unauthenticated
+      # loopback submission has no aligned SPF/DKIM, so Stalwart's spam filter
+      # scored it and filed the admin invite into Junk. Authenticating as a real
+      # local account removes that penalty. NOTE :587 advertises PLAIN/LOGIN only
+      # AFTER the TLS handshake — verified by probe (pre-TLS it offers OAuth
+      # mechanisms only, which Vaultwarden cannot use).
       SMTP_HOST = "127.0.0.1";
-      SMTP_PORT = 25;
-      SMTP_SECURITY = "off";      # loopback hop; Stalwart needs no TLS/auth from 127.0.0.1
+      SMTP_PORT = 587;
+      SMTP_SECURITY = "starttls";
+      # Loopback hop: Stalwart's cert is issued for mail.<domain>, not for
+      # 127.0.0.1, so the hostname can never match. Keep full CHAIN validation
+      # and relax only the NAME — there is no MITM surface on loopback.
+      SMTP_ACCEPT_INVALID_HOSTNAMES = true;
       SMTP_FROM = "vault@${domain}";
       SMTP_FROM_NAME = "Tsiru's Vaultwarden";
 
