@@ -138,6 +138,9 @@
           @blocked {
             path /.* *.sqlite *.zip
             path /app/* /config/* /database/* /bootstrap/* /vendor/* /routes/*
+            path /storage/logs/* /storage/framework/* /storage/backups/*
+            path /artisan /server.php /composer.json /composer.lock
+            path /package.json /phpunit.xml
           }
           respond @blocked 404
 
