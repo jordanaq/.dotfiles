@@ -137,6 +137,39 @@ in
             "else" = "'scaleway'";
           };
         };
+
+        # Auto-banning — Stalwart's own fail2ban. This is the ONLY defence that
+        # can see brute force against the mail protocols: IMAP/SMTP/Sieve on
+        # 993/465/587 connect straight to Stalwart and never touch Caddy, so the
+        # fail2ban jail (which parses Caddy access logs) is structurally blind
+        # to them. Failures are counted across JMAP, IMAP, SMTP and ManageSieve
+        # and keyed on BOTH the source IP and the login name, so a distributed
+        # attack against a single account still trips it. Deliberately
+        # conservative — 10 failures / 15 min -> 1 h ban — because the block
+        # drops the connection and a false positive locks the owner out of their
+        # own mail. Fields not named here keep their defaults (abuse/loiter/scan
+        # rates, and scanBanPaths, which instantly bans exploit-path probes).
+        Security = {
+          authBanRate = {
+            count = 10;
+            period = 900000;
+          };
+          authBanPeriod = 3600000;
+        };
+
+        # Stalwart's HTTP listener is loopback-only behind Caddy. Without this,
+        # Stalwart attributes EVERY proxied request to 127.0.0.1, so auto-ban
+        # would count all failures against the proxy and eventually ban it —
+        # locking out all webmail/JMAP access behind it (the failure mode the
+        # upstream docs explicitly warn about). With `useXForwarded` Stalwart
+        # reads the client IP from the `Forwarded` header, falling back to
+        # X-Forwarded-For. Both are only trustworthy while Caddy controls them,
+        # which is why the mail. vhost in system/caddy.nix SETS `Forwarded`:
+        # Caddy overwrites X-Forwarded-For itself, but passes a client-supplied
+        # `Forwarded` through untouched.
+        Http = {
+          useXForwarded = true;
+        };
       };
 
       objects = {

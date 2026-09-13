@@ -183,7 +183,16 @@
             header Origin https://webmail.${domain}
           }
           respond @preflight 204
-          reverse_proxy 127.0.0.1:8080
+          reverse_proxy 127.0.0.1:8080 {
+            # Stalwart runs with Http.useXForwarded, so it takes the client IP
+            # from the `Forwarded` header (falling back to X-Forwarded-For) to
+            # attribute auth failures for auto-banning. SET it here rather than
+            # relying on the fallback: Caddy rewrites X-Forwarded-For itself and
+            # therefore cannot be spoofed, but it forwards a client-supplied
+            # `Forwarded` untouched — so without this line an attacker could pick
+            # the address they get banned as (or frame someone else's).
+            header_up Forwarded "for={remote_host}"
+          }
         '';
       };
 
