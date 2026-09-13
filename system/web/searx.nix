@@ -1,4 +1,4 @@
-# SearXNG — loopback-only, fronted by Caddy (system/caddy.nix).
+# SearXNG — loopback-only, fronted by Caddy (system/web/caddy.nix).
 # Self-contained: no Firecrawl, no Docker, nothing reaches it but Caddy.
 { domain, pkgs, ... }:
 

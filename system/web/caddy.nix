@@ -137,7 +137,7 @@ in
       };
 
       # notes.<domain> — public Quartz export of the vault's Concepts/ folder.
-      # Built and published on THIS box (see system/notes-site.nix): a timer
+      # Built and published on THIS box (see system/web/notes-site): a timer
       # pulls the vault's bare remote, rebuilds, and rsyncs into the docroot.
       # Static files only: no service, no PHP, no DB, zero runtime RAM.
       # Deliberately PUBLIC.
@@ -167,7 +167,7 @@ in
         '';
       };
 
-      # linkstack — link-in-bio page (see system/linkstack.nix).
+      # linkstack — link-in-bio page (see system/web/linkstack.nix).
       #
       # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
       # Anyone can read the page; LinkStack's own admin login — created by the
@@ -246,7 +246,7 @@ in
         '';
       };
 
-      # webmail.<domain> — Bulwark (system/bulwark.nix). Public: Bulwark's own
+      # webmail.<domain> — Bulwark (system/mail/bulwark.nix). Public: Bulwark's own
       # login gates it, and the login IS the mail account.
       "webmail.${domain}" = {
         logFormat = ''
@@ -272,7 +272,7 @@ in
         '';
       };
 
-      # vault.<domain> — Vaultwarden (system/vaultwarden.nix), the
+      # vault.<domain> — Vaultwarden (system/web/vaultwarden), the
       # Bitwarden-compatible password manager.
       #
       # Deliberately PUBLIC: Vaultwarden's own login gates it, and Bitwarden
@@ -305,7 +305,7 @@ in
           # /admin is TAILNET-ONLY: it can create users and read diagnostics, so
           # the public vhost refuses it outright. Reach it over Tailscale
           # instead — see the "admin over the tailnet" runbook in
-          # system/vaultwarden.nix. (`respond` is ordered before `reverse_proxy`
+          # system/web/vaultwarden. (`respond` is ordered before `reverse_proxy`
           # by Caddy's default directive order, so this wins.)
           @admin path /admin /admin/*
           respond @admin 403
@@ -324,6 +324,6 @@ in
     };
   };
 
-  # The docroot itself is declared in system/notes-site.nix, together with the
+  # The docroot itself is declared in system/web/notes-site, together with the
   # service that builds into it.
 }

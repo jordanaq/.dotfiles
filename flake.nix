@@ -12,7 +12,7 @@
     # The public personal site (Zola source + build) served at the apex
     # domain. github.com/jordanaq/tsiru-pet — public, so the box can fetch it
     # over HTTPS with no credentials. Its own package output is the built
-    # static site; system/caddy.nix serves it.
+    # static site; system/web/caddy.nix serves it.
     tsiru-pet = {
       url = "git+https://github.com/jordanaq/tsiru-pet?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";

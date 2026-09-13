@@ -6,6 +6,12 @@ This is the **`server` branch** of [`jordanaq/.dotfiles`](https://github.com/jor
 The desktop configuration stays on `main`; this branch deletes the entire
 desktop/GUI/GPU stack and keeps only what the server needs.
 
+> ⚠️ **Mostly vibe-coded.** This config was largely written by an AI assistant
+> ("vibe coding"), then checked against the running box and hardened through a
+> pentest pass. It works, but treat every line as *plausible* rather than
+> *authoritative*: the per-service notes below record what has actually been
+> tested, and several values were confirmed only by probing the live server.
+
 ## Services
 
 | Service | Address | Notes |
@@ -13,15 +19,15 @@ desktop/GUI/GPU stack and keeps only what the server needs.
 | **SearXNG** | `https://search.tsiru.pet` | Behind Caddy, HTTP basic auth. Binds `127.0.0.1:8888` — loopback only, no firewall opening. |
 | **calibre-web** | `https://library.tsiru.pet` | Browser UI for the Calibre library. Behind Caddy; calibre-web's own login is the gate. |
 | **calibre-server** | `https://calibre.tsiru.pet` | Calibre content server — remote `calibredb` + OPDS. Behind Caddy; its own auth is the gate. |
-| **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/linkstack.nix`. |
+| **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/web/linkstack.nix`. |
 | **Personal site** | `https://tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. No auth. |
-| **Notes site** | `https://notes.tsiru.pet` | Public Quartz export of the vault's `Concepts/` folder, built **and** published on this box by `notes-publish.service`. Static files only. See `system/notes-site.nix`. |
-| **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/stalwart.nix`. |
-| **Bulwark** | `https://webmail.tsiru.pet` | Self-hosted JMAP webmail client for Stalwart (prebuilt Node bundle — no PHP/DB; accounts live in Stalwart). See `system/bulwark.nix`. |
-| **Vaultwarden** | `https://vault.tsiru.pet` | Bitwarden-compatible password manager (SQLite). Registration closed; `/admin` is tailnet-only. See `system/vaultwarden.nix`. |
-| **Uptime Kuma** | tailnet only (`:8443`) | Status/heartbeat monitor. Loopback-only, reached via `tailscale serve` — deliberately **not** in Caddy. See `system/uptime-kuma.nix`. |
-| **Tailscale** | — | Private mesh access to the box (no extra public ports). Purely additive. See `system/tailscale.nix`. |
-| **fail2ban** | — | Bans IPs tripping repeated `401`/`403`, or a 4xx on an auth endpoint, across **all** Caddy vhosts (`/var/log/caddy/*.log`; file backend). See `system/fail2ban.nix`. |
+| **Notes site** | `https://notes.tsiru.pet` | Public Quartz export of the vault's `Concepts/` folder, built **and** published on this box by `notes-publish.service`. Static files only. See `system/web/notes-site`. |
+| **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/mail/stalwart/default.nix`. |
+| **Bulwark** | `https://webmail.tsiru.pet` | Self-hosted JMAP webmail client for Stalwart (prebuilt Node bundle — no PHP/DB; accounts live in Stalwart). See `system/mail/bulwark.nix`. |
+| **Vaultwarden** | `https://vault.tsiru.pet` | Bitwarden-compatible password manager (SQLite). Registration closed; `/admin` is tailnet-only. See `system/web/vaultwarden`. |
+| **Uptime Kuma** | tailnet only (`:8443`) | Status/heartbeat monitor. Loopback-only, reached via `tailscale serve` — deliberately **not** in Caddy. See `system/monitoring/uptime-kuma.nix`. |
+| **Tailscale** | — | Private mesh access to the box (no extra public ports). Purely additive. See `system/networking/tailscale.nix`. |
+| **fail2ban** | — | Bans IPs tripping repeated `401`/`403`, or a 4xx on an auth endpoint, across **all** Caddy vhosts (`/var/log/caddy/*.log`; file backend). See `system/security/fail2ban.nix`. |
 | **Caddy** | `:80`, `:443` | Reverse proxy + automatic Let's Encrypt TLS (HTTP-01 on `:80`; the `mail.` cert comes from `security.acme` DNS-01, see below). |
 | **OpenSSH** | `:22` | Key-only, `tsiru` only (`PasswordAuthentication=false`, `PermitRootLogin=no`). |
 | **Firewall** | — | Default deny. Open TCP: `22`, `80`, `443`, `25`, `465`, `587`, `993`; UDP: `41641` (WireGuard/Tailscale). ManageSieve `4190` is deliberately **not** opened — Linode filters it upstream, so it can never be reached from the internet (pentest F-11). |
@@ -131,13 +137,13 @@ reports under *Settings › Domains › DKIM Signatures* into Spaceship.
 
 ## LinkStack (links.tsiru.pet)
 
-LinkStack is **not packaged in nixpkgs** — `system/linkstack.nix` fetches the
+LinkStack is **not packaged in nixpkgs** — `system/web/linkstack.nix` fetches the
 official release zip, runs it under php-fpm (SQLite), and Caddy fronts it.
 
 Because the app ships in the shared-hosting layout, its docroot is the **app
 root**, not a `public/` subdir. That means `.env` / the SQLite DB / the source
 would be web-reachable — Apache hides them via `.htaccess`, but **Caddy ignores
-`.htaccess`**, so the equivalent denials are re-stated in `system/caddy.nix`.
+`.htaccess`**, so the equivalent denials are re-stated in `system/web/caddy.nix`.
 Keep the two in sync.
 
 - **Data dir:** `/var/lib/linkstack` (owned `linkstack:linkstack`) — the mutable
@@ -166,7 +172,7 @@ Keep the two in sync.
 - **Advanced config.** `config/advanced-config.php` is **app-owned** — LinkStack
   creates it and the admin panel edits it. It is *not* managed by Nix; edit it at
   `https://links.tsiru.pet/admin/config`, not in this repo.
-- **Upgrading:** bump `version` (and the `hash`) in `system/linkstack.nix`; the
+- **Upgrading:** bump `version` (and the `hash`) in `system/web/linkstack.nix`; the
   setup unit re-runs automatically. Compute a new hash with
   `nix store prefetch-file <release-url>`.
 - **First run:** `linkstack-setup` seeds `.env` and generates the Laravel
@@ -191,7 +197,7 @@ path at the apex domain. Nothing runs on the box for it.
 ## Notes site (notes.tsiru.pet)
 
 A Quartz v5 export of the vault's `Concepts/` folder, built and published
-**on the box** (`system/notes-site.nix`). The vault lives on the desktop, but
+**on the box** (`system/web/notes-site`). The vault lives on the desktop, but
 its bare git remote lives here (`~/Documents/Obsidian-Vault.git`), so the
 publisher clones from a local path and needs no credentials.
 
@@ -205,8 +211,8 @@ publisher clones from a local path and needs no credentials.
   avoids git's "dubious ownership" refusal.
 - **Quartz** is pinned by `flake.lock` (not `?ref=main`), so a rebuild is
   reproducible and an upstream release can never silently change the site. The
-  site's config is `system/notes-site-quartz.config.yaml`; a synthetic root
-  index (`system/notes-site-index.md`) is injected into the build clone because
+  site's config is `system/web/notes-site/quartz.config.yaml`; a synthetic root
+  index (`system/web/notes-site/index.md`) is injected into the build clone because
   `Concepts/` has no `index.md` and `/` would otherwise 404.
 
 ## Mail (mail.tsiru.pet)
@@ -218,13 +224,13 @@ deliberately **no** `admin.` vhost; a separate one became bypassable and broke
 the panel).
 
 - **Version 0.16.21**, prebuilt from the upstream GitHub release via
-  `system/stalwart-overlay.nix` (nixpkgs still pins 0.15.5). The 0.16 module +
+  `system/mail/stalwart/overlay.nix` (nixpkgs still pins 0.15.5). The 0.16 module +
   provisioning are vendored from open nixpkgs PR #552103. Drop both once nixpkgs
   ships Stalwart ≥ 0.16.
 - **Config model.** 0.16 keeps only a tiny datastore descriptor on disk
   (`@type = RocksDb`, `/var/lib/stalwart/db`); listeners, routing, domains, and
   accounts live *in the datastore as JMAP objects*, provisioned idempotently at
-  boot by `stalwart-cli apply` (`system/stalwart-module/provision.nix`). That
+  boot by `stalwart-cli apply` (`system/mail/stalwart/module/provision.nix`). That
   provisioning covers SMTP `25`/`465`/`587`, IMAPS `993`, the loopback HTTP
   listener (`127.0.0.1:8080`, fronted by Caddy), and the outbound routes.
   There is deliberately **no** ManageSieve listener — see below.
@@ -257,13 +263,13 @@ A Bitwarden-compatible password manager, built on NixOS's first-class
 - **`/admin` is tailnet-only** — the public vhost returns `403` for it (see
   `caddy.nix`). Reach it over the tailnet instead.
 - **Re-skinned to Catppuccin Macchiato** (pink accent) — see
-  `system/vaultwarden-catppuccin-macchiato.scss` and the tmpfiles rules that
+  `system/web/vaultwarden/catppuccin-macchiato.scss` and the tmpfiles rules that
   symlink it into place.
 - **Email** goes out through Stalwart on `:587` (STARTTLS) as an authenticated
   `vault@` account — an unauthenticated loopback submission has no aligned
   SPF/DKIM and was filed into Junk.
 - **⚠️ No backups yet.** The module's nightly dump is deliberately commented out
-  in `system/vaultwarden.nix` (`backupDir`); a Discord reminder job tracks it.
+  in `system/web/vaultwarden` (`backupDir`); a Discord reminder job tracks it.
   Uncomment `backupDir` to enable the built-in `23:00` backup timer.
 
 ## Tailnet & private admin

@@ -5,7 +5,7 @@
 #   1. fetches the official release bundle (which already vendors composer's
 #      `vendor/` — no PHP build step needed),
 #   2. runs it under php-fpm with a SQLite database,
-#   3. publishes it through the existing Caddy reverse proxy (system/caddy.nix).
+#   3. publishes it through the existing Caddy reverse proxy (system/web/caddy.nix).
 #
 # WHY A STATE-DIRECTORY COPY (not a read-only store path):
 #   LinkStack ships in the shared-hosting layout — the front controller
@@ -25,7 +25,7 @@
 # SECURITY NOTE: because the docroot is the app root, the web server must NOT
 #   expose `.env` / the SQLite DB / the app source. On Apache that is the job of
 #   `.htaccess` (which denies dotfiles, *.sqlite, *.zip). Caddy ignores
-#   `.htaccess`, so the equivalent denials are re-stated in system/caddy.nix.
+#   `.htaccess`, so the equivalent denials are re-stated in system/web/caddy.nix.
 #   Keep the two in sync if either changes.
 { config, lib, pkgs, domain, ... }:
 
@@ -322,7 +322,7 @@ in
   # Caddy needs read access to the static files it serves from ${dataDir}.
   users.users.caddy.extraGroups = [ group ];
 
-  # --- Caddy vhost is declared in system/caddy.nix (kept with the others) ---
+  # --- Caddy vhost is declared in system/web/caddy.nix (kept with the others) ---
   # It serves ${dataDir} as the docroot, proxies PHP to the pool socket, and
   # re-states LinkStack's .htaccess denials. vhost name: ${vhost}.
 

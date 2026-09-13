@@ -135,7 +135,7 @@ in
   };
   users.groups.${group} = { };
 
-  # --- Caddy vhost is declared in system/caddy.nix (kept with the others) ---
+  # --- Caddy vhost is declared in system/web/caddy.nix (kept with the others) ---
   # It reverse-proxies https://${vhost} -> 127.0.0.1:${port}.
   #
   # Deployment checklist:

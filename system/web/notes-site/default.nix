@@ -4,7 +4,7 @@
 # on the desktop, but its bare git remote lives HERE
 # (~/Documents/Obsidian-Vault.git), so the box can clone from a local path and
 # needs no credentials: the publish is pull -> build -> rsync into the docroot
-# Caddy serves (see ./caddy.nix).
+# Caddy serves (see ../caddy.nix).
 #
 # Trigger: notes-publish.service is a long-running daemon (Type=simple,
 # Restart=always) — ACTIVE from power-on — that republishes every INTERVAL
@@ -22,22 +22,22 @@ let
   # Pinned Quartz v5 tree (flake input, so the build is reproducible) plus this
   # repo's config file as the single source of truth for the site.
   quartzSrc = inputs.quartz;
-  quartzConfig = ./notes-site-quartz.config.yaml;
+  quartzConfig = ./quartz.config.yaml;
   # Landing page for the site root — Concepts/ has no index.md, so without this
   # `/` returns 404. Injected into the build clone only, never into the vault.
-  notesIndex = ./notes-site-index.md;
+  notesIndex = ./index.md;
 
   publish = pkgs.writeShellApplication {
     name = "notes-publish";
     runtimeInputs = with pkgs; [ bash coreutils findutils git nodejs rsync ];
-    text = builtins.readFile ./notes-site-publish.sh;
+    text = builtins.readFile ./publish.sh;
   };
 
   # The always-on driver; `publish` lands on its PATH via runtimeInputs.
   run = pkgs.writeShellApplication {
     name = "notes-publish-run";
     runtimeInputs = [ publish pkgs.bash pkgs.coreutils ];
-    text = builtins.readFile ./notes-site-run.sh;
+    text = builtins.readFile ./run.sh;
   };
 in
 {

@@ -1,5 +1,5 @@
 # Vaultwarden — self-hosted, Bitwarden-compatible password manager, served at
-# vault.<domain>. Caddy terminates TLS and proxies (system/caddy.nix).
+# vault.<domain>. Caddy terminates TLS and proxies (system/web/caddy.nix).
 #
 # NixOS ships a FIRST-CLASS module for this (services.vaultwarden), so there is
 # NO Docker, NO compose, and NO bespoke packaging here — unlike LinkStack, which
@@ -15,7 +15,7 @@
 # HTTP-01 on :80 — so the `vault` DNS A record must be DNS-ONLY (grey cloud).
 #
 # The web vault is re-skinned to Catppuccin Macchiato (pink accent) — see
-# system/vaultwarden-catppuccin-macchiato.scss and the tmpfiles rules at the end.
+# system/web/vaultwarden/catppuccin-macchiato.scss and the tmpfiles rules at the end.
 #
 # Secrets (NOT in this public repo):
 #   /etc/secrets/vaultwarden.env   →   ADMIN_TOKEN=<long random>
@@ -33,13 +33,13 @@
 # was created 2026-09-12), so there is no way to add a user without temporarily
 # re-enabling INVITATIONS_ALLOWED (or SIGNUPS_ALLOWED) and rebuilding.
 # The admin panel itself is TAILNET-ONLY — the public vhost blocks /admin (see
-# system/caddy.nix). Reach it by serving the app on the tailnet, one-time on the
+# system/web/caddy.nix). Reach it by serving the app on the tailnet, one-time on the
 # box:
 #   sudo tailscale serve --bg --https=10000 http://127.0.0.1:8222
 #   ->  https://tsiru-cloud.<tailnet>.ts.net:10000/admin
 # ⚠ Use 10000. 8443 is Uptime Kuma, and --https=443 makes tailscaled bind the
 #   tailnet address on :443, which collides with Caddy's wildcard bind and takes
-#   EVERY public vhost down (see system/uptime-kuma.nix).
+#   EVERY public vhost down (see system/monitoring/uptime-kuma.nix).
 { config, domain, pkgs, ... }:
 
 {
@@ -155,6 +155,6 @@
   systemd.tmpfiles.rules = [
     "d /var/lib/vaultwarden/templates 0755 root root -"
     "d /var/lib/vaultwarden/templates/scss 0755 root root -"
-    "L+ /var/lib/vaultwarden/templates/scss/user.vaultwarden.scss.hbs - - - - ${./vaultwarden-catppuccin-macchiato.scss}"
+    "L+ /var/lib/vaultwarden/templates/scss/user.vaultwarden.scss.hbs - - - - ${./catppuccin-macchiato.scss}"
   ];
 }

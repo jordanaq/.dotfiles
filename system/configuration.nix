@@ -20,17 +20,11 @@ in {
   imports = [
     ./hardware-configuration.nix
     ./constants.nix
-    ./searx.nix
-    ./notes-site.nix
-    ./caddy.nix
-    ./calibre.nix
-    ./linkstack.nix
-    ./stalwart.nix
-    ./bulwark.nix
-    ./fail2ban.nix
-    ./tailscale.nix
-    ./uptime-kuma.nix
-    ./vaultwarden.nix
+    ./web
+    ./mail
+    ./monitoring
+    ./security
+    ./networking
   ];
 
   # --- Boot ---------------------------------------------------------------
@@ -100,7 +94,7 @@ in {
     #   filters the port upstream, so no internet client could reach it, and
     #   nothing here speaks ManageSieve (Sieve is managed over JMAP). Opening it
     #   only advertised a service that did not exist — see the listener note in
-    #   system/stalwart.nix.
+    #   system/mail/stalwart/default.nix.
     firewall = {
       enable = true;
       allowedTCPPorts = [ 22 80 443 25 465 587 993 ];
@@ -183,7 +177,6 @@ in {
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
-  # Prebuilt Stalwart 0.16 + CLI (nixpkgs still pins 0.15.5). Drop once nixpkgs
-  # bumps past 0.16 — see the overlay's header comment.
-  nixpkgs.overlays = [ (import ./stalwart-overlay.nix) ];
+  # NOTE: the prebuilt-Stalwart overlay is declared inside
+  # system/mail/stalwart/default.nix, beside the package it defines.
 }

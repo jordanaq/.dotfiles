@@ -1,9 +1,9 @@
 # Stalwart — all-in-one mail + collaboration server (SMTP/IMAP/JMAP/POP3 and
-# CalDAV/CardDAV/WebDAV). This IS the mail server; Bulwark (system/bulwark.nix)
+# CalDAV/CardDAV/WebDAV). This IS the mail server; Bulwark (system/mail/bulwark.nix)
 # is the web client that talks to it over JMAP.
 #
 # VERSION: 0.16.21 — prebuilt from the upstream GitHub release via the overlay
-# in system/stalwart-overlay.nix (nixpkgs still pins 0.15.5 as of 2026-09).
+# in system/mail/stalwart/overlay.nix (nixpkgs still pins 0.15.5 as of 2026-09).
 # 0.16 redesigned the management layer: the on-disk config is now a tiny JSON
 # datastore descriptor, and EVERYTHING else (listeners, routing, domains,
 # accounts…) lives in the datastore as JMAP objects. The module + provisioning
@@ -37,10 +37,15 @@ in
   # Replace nixpkgs' built-in 0.15.5-era module (it emits TOML config and has
   # no recovery/admin/provision options) with the vendored 0.16 module.
   imports = [
-    ./stalwart-module/default.nix
-    ./stalwart-module/provision.nix
+    ./module/default.nix
+    ./module/provision.nix
   ];
   disabledModules = [ "services/mail/stalwart.nix" ];
+
+  # Prebuilt Stalwart 0.16 + CLI (nixpkgs still pins 0.15.5). Declared HERE, not
+  # in configuration.nix, so the overlay that defines the package lives beside
+  # the module that consumes it. Drop once nixpkgs ships stalwart >= 0.16.
+  nixpkgs.overlays = [ (import ./overlay.nix) ];
 
   # --- TLS: one certificate for the mail hostname, via Spaceship DNS-01 -----
   # No ports 80/443 involvement (DNS-01), so it does not collide with Caddy.
@@ -179,7 +184,7 @@ in
         # upstream docs explicitly warn about). With `useXForwarded` Stalwart
         # reads the client IP from the `Forwarded` header, falling back to
         # X-Forwarded-For. Both are only trustworthy while Caddy controls them,
-        # which is why the mail. vhost in system/caddy.nix SETS `Forwarded`:
+        # which is why the mail. vhost in system/web/caddy.nix SETS `Forwarded`:
         # Caddy overwrites X-Forwarded-For itself, but passes a client-supplied
         # `Forwarded` through untouched.
         Http = {

@@ -32,7 +32,7 @@ final: prev: {
       runHook postInstall
     '';
 
-    # The stalwart-provision unit (system/stalwart-module/provision.nix) reads
+    # The stalwart-provision unit (system/mail/stalwart/module/provision.nix) reads
     # the apply-plan schema from package.src, so expose the SOURCE here
     # (it carries resources/schema/schema.json.gz). fetchzip: unpacked, with
     # the wrapper dir stripped — the nixpkgs stalwart package does the same.
