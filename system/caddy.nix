@@ -69,6 +69,14 @@
           }
         '';
         extraConfig = ''
+          # TRACE is never needed by a client here and is a classic cross-site
+          # tracing / XST vector (and it makes the vhost an easy fingerprint).
+          # Caddy would otherwise forward it to calibre-server, which answered
+          # 200 (pentest F-07). Named matcher + respond: `respond` is ordered
+          # before `reverse_proxy`, so this wins.
+          @trace method TRACE
+          respond @trace 405
+
           reverse_proxy 127.0.0.1:8081
         '';
       };
