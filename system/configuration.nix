@@ -1,6 +1,9 @@
 # tsiru-cloud — lean server base configuration
-# Server-only branch of ~/.dotfiles. Services: SearXNG + Calibre (calibre-web +
-# content server) behind Caddy, plus SSH.
+# Server-only branch of ~/.dotfiles.
+# Services: SearXNG, Calibre (calibre-web + content server), LinkStack, the
+# public personal site, the vault notes site, Stalwart + Bulwark (mail), and
+# Vaultwarden — all behind Caddy — plus Tailscale, Uptime Kuma, fail2ban, and
+# SSH. See the per-service modules in this directory and the README.
 #
 # Linode/LISH boot + networking settings below are taken from nixpkgs'
 # maintained profile `nixos/modules/virtualisation/linode-config.nix`
