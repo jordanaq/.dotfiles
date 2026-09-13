@@ -71,6 +71,13 @@
       SMTP_FROM = "vault@${domain}";
       SMTP_FROM_NAME = "Tsiru's Vaultwarden";
 
+      # EHLO name. REQUIRED — Vaultwarden otherwise sends the bare hostname
+      # ("tsiru-cloud"), and Stalwart 0.16 rejects a dotless EHLO domain with
+      # `550 5.5.0 Invalid EHLO domain`, failing every invite/notification.
+      # Must be an FQDN. Verified: EHLO localhost/tsiru-cloud -> 550,
+      # EHLO vault.${domain} -> 250.
+      HELO_NAME = "vault.${domain}";
+
       # NOTE: no USE_SENDMAIL — using SMTP keeps the module's strict systemd
       # sandbox (USE_SENDMAIL=true would relax PrivateUsers/NoNewPrivileges).
     };
