@@ -97,15 +97,19 @@ in
     inherit user group;
     phpPackage = php;
 
+    # NOTE: `phpOptions` is appended RAW to the generated php.ini, so it must be
+    # valid php.ini syntax — comments are `;`, NOT `#`. A `#` line is a parse
+    # error: PHP aborts the rest of the file and silently drops every option
+    # after it (this cost us the F-08 fix once — the file looked right while
+    # `expose_php` stayed On). Keep the explanation here, not inline.
     phpOptions = ''
       log_errors = on
       memory_limit = 256M
       upload_max_filesize = 16M
       post_max_size = 20M
 
-      # Do not advertise the exact PHP build in `X-Powered-By: PHP/8.3.33`
-      # (pentest F-08) — it hands an attacker the precise version to match
-      # against CVEs for no benefit. Nothing here depends on the header.
+      ; Do not advertise the exact PHP build in `X-Powered-By: PHP/8.3.33`
+      ; (pentest F-08). Nothing here depends on the header.
       expose_php = off
     '';
 
