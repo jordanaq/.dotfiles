@@ -23,8 +23,22 @@
 #      not optional here, and Caddy refuses to start without it
 #      ("username and password cannot be empty or missing").
 #   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
-{ config, domain, inputs, ... }:
+{ config, lib, domain, inputs, ... }:
 
+let
+  # Response headers applied to EVERY vhost below (see the mapAttrs at
+  # `virtualHosts`). HSTS is pentest F-03: only library. carried it, and that
+  # came from calibre-web rather than the proxy — so the password manager,
+  # webmail and the mail admin all went without.
+  #
+  # `header` SETS the field, so this cannot double up on an upstream that
+  # already sends its own (library.'s calibre-web HSTS gets replaced, not
+  # duplicated). includeSubDomains is safe here: every name with an A record
+  # serves HTTPS, the one exception (status.<domain>) is stale, pending
+  # deletion, and serves no HTTPS at all. Deliberately NO `preload` — that is
+  # a one-way door and needs submission to the preload list.
+  hsts = ''header Strict-Transport-Security "max-age=31536000; includeSubDomains"'';
+in
 {
   services.caddy = {
     enable = true;
@@ -33,7 +47,14 @@
     # EnvironmentFile, read as root before dropping to the caddy user).
     environmentFile = "/etc/secrets/caddy.env";
 
-    virtualHosts = {
+    # mapAttrs rather than a per-vhost line so the header is defined once, can
+    # never be forgotten on a new vhost, and cannot drift between them.
+    virtualHosts = lib.mapAttrs (name: vh: vh // {
+      extraConfig = ''
+        ${hsts}
+        ${vh.extraConfig or ""}
+      '';
+    }) {
       "search.${domain}".extraConfig = ''
         basic_auth {
           tsiru {$CADDY_AUTH_HASH}
