@@ -31,13 +31,21 @@ let
   # came from calibre-web rather than the proxy — so the password manager,
   # webmail and the mail admin all went without.
   #
-  # `header` SETS the field, so this cannot double up on an upstream that
-  # already sends its own (library.'s calibre-web HSTS gets replaced, not
-  # duplicated). includeSubDomains is safe here: every name with an A record
+  # `header` on its own ADDS a second STS field when the upstream already sent
+  # one — library.'s calibre-web sends its own, which produced two headers.
+  # Order happened to favour us, but RFC 6797 has a UA process only the FIRST
+  # STS header, so a duplicate leaves the effective policy to chance. Delete
+  # the upstream's field first, then set ours, so every response carries
+  # exactly one. includeSubDomains is safe here: every name with an A record
   # serves HTTPS, the one exception (status.<domain>) is stale, pending
   # deletion, and serves no HTTPS at all. Deliberately NO `preload` — that is
   # a one-way door and needs submission to the preload list.
-  hsts = ''header Strict-Transport-Security "max-age=31536000; includeSubDomains"'';
+  hsts = ''
+    header {
+      -Strict-Transport-Security
+      Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+  '';
 in
 {
   services.caddy = {
