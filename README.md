@@ -262,9 +262,6 @@ A Bitwarden-compatible password manager, built on NixOS's first-class
   invitations temporarily if a second user is ever needed.
 - **`/admin` is tailnet-only** — the public vhost returns `403` for it (see
   `caddy.nix`). Reach it over the tailnet instead.
-- **Re-skinned to Catppuccin Macchiato** (pink accent) — see
-  `system/web/vaultwarden/catppuccin-macchiato.scss` and the tmpfiles rules that
-  symlink it into place.
 - **Email** goes out through Stalwart on `:587` (STARTTLS) as an authenticated
   `vault@` account — an unauthenticated loopback submission has no aligned
   SPF/DKIM and was filed into Junk.
