@@ -66,11 +66,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789344130,
-        "narHash": "sha256-g85CjAFmTvbRnaibX+8WrlqpAf3U+IPnL5MFF7N+1YY=",
+        "lastModified": 1789345238,
+        "narHash": "sha256-f6bgesTjeP5Jdlwvoos0p67EEKGtmltUVL9sCfiTzjA=",
         "ref": "main",
-        "rev": "66204cc5258bf4171bc9a63a26581c86472fde96",
-        "revCount": 20,
+        "rev": "a3f4b243126ff0d6d80d5ebc1ea5d4541cc15961",
+        "revCount": 21,
         "type": "git",
         "url": "https://github.com/jordanaq/tsiru-pet"
       },
