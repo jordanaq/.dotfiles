@@ -121,7 +121,14 @@ fi
 
 # Site root. Only fill in for the vault: if Concepts/ ships its own index.md,
 # that wins. Injected into the clone, never into the vault.
-if [ -n "$index_sum" ] && [ ! -f "$BUILD/vault/$VAULT_SUBDIR/index.md" ]; then
+#
+# The guard must ask GIT, not the filesystem. sync_vault only resets tracked
+# files, so an injected (untracked) index.md survives `reset --hard` and a plain
+# `-f` test keeps that first injection forever — which is how the landing page
+# got frozen at its pre-`publish: true` September bytes and, once explicit-
+# publish landed, `/` started 404ing with the file quietly filtered out.
+if [ -n "$index_sum" ] &&
+  ! git -C "$BUILD/vault" ls-files --error-unmatch "$VAULT_SUBDIR/index.md" >/dev/null 2>&1; then
   cp "$INDEX_MD" "$BUILD/vault/$VAULT_SUBDIR/index.md"
 fi
 
