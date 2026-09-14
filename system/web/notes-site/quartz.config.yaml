@@ -107,8 +107,12 @@ plugins:
       mode: both
   - source: "@quartz-community/remove-draft"
     enabled: true
+  # OPT-IN publishing: with this on, only notes whose frontmatter says
+  # `publish: true` are emitted. A note with no `publish:` key is silently
+  # absent from the site — which is why vault_frontmatter_lint.py now raises
+  # `publish-flag-missing` on any Concepts/ note without the flag.
   - source: "@quartz-community/explicit-publish"
-    enabled: false
+    enabled: true
   - source: "@quartz-community/alias-redirects"
     enabled: true
   - source: "@quartz-community/content-index"

@@ -1,5 +1,6 @@
 ---
 title: Concepts
+publish: true
 ---
 
 A public reading copy of the concept notes in my vault.
