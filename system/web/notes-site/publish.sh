@@ -44,7 +44,11 @@ stage_quartz() {
   # the source stamp meant a config-only edit (enabling a plugin, changing
   # ignorePatterns, ...) was silently never applied: the build kept using the
   # stale copy left in the tree from the last re-stage.
-  cp "$QUARTZ_CFG" "$BUILD/quartz/quartz.config.yaml"
+  # `install -m 644`, not bare `cp`: a fresh `cp` gives the new file the
+  # SOURCE's permission bits, and store paths are 444 — so the very first copy
+  # landed read-only and every later copy died with "Permission denied"
+  # (which is how the ca8a257 deploy wedged the unit into a restart loop).
+  install -m 644 "$QUARTZ_CFG" "$BUILD/quartz/quartz.config.yaml"
 }
 
 sync_vault() {
