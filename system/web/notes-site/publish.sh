@@ -30,17 +30,21 @@ INDEX_MD="${3:-}"
 # wiped with the tree, so npm ci re-runs only when the source actually changed.
 stage_quartz() {
   local stamp="$BUILD/quartz/.source-rev"
-  if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$QUARTZ_SRC" ]; then
-    return
+  if [ ! -f "$stamp" ] || [ "$(cat "$stamp")" != "$QUARTZ_SRC" ]; then
+    rm -rf "$BUILD/quartz"
+    # Store paths are read-only, but their MODE must survive the copy — dropping
+    # the exec bit makes quartz/bootstrap-cli.mjs unrunnable ("Permission
+    # denied"). Keep the mode, then add write for us.
+    cp -r --no-preserve=ownership "$QUARTZ_SRC" "$BUILD/quartz"
+    chmod -R u+rwX "$BUILD/quartz"
+    printf '%s\n' "$QUARTZ_SRC" >"$stamp"
   fi
-  rm -rf "$BUILD/quartz"
-  # Store paths are read-only, but their MODE must survive the copy — dropping
-  # the exec bit makes quartz/bootstrap-cli.mjs unrunnable ("Permission
-  # denied"). Keep the mode, then add write for us.
-  cp -r --no-preserve=ownership "$QUARTZ_SRC" "$BUILD/quartz"
-  chmod -R u+rwX "$BUILD/quartz"
+  # The config is THIS repo's source of truth and is copied on EVERY run, not
+  # just when the Quartz tree is re-staged. It is a few KB, and gating it behind
+  # the source stamp meant a config-only edit (enabling a plugin, changing
+  # ignorePatterns, ...) was silently never applied: the build kept using the
+  # stale copy left in the tree from the last re-stage.
   cp "$QUARTZ_CFG" "$BUILD/quartz/quartz.config.yaml"
-  printf '%s\n' "$QUARTZ_SRC" >"$stamp"
 }
 
 sync_vault() {
@@ -97,12 +101,15 @@ rev="$(git -C "$BUILD/vault" rev-parse HEAD)"
 # The publisher's OWN hash is in the key for the same reason: a change to the
 # rendering logic below (date substitution, etc.) must reach the site even when
 # neither the vault nor the landing page moved.
+# The CONFIG's hash is in the key too: enabling/disabling a plugin or changing
+# ignorePatterns changes the output without touching a single note.
 index_sum=""
 if [ -n "$INDEX_MD" ] && [ -f "$INDEX_MD" ]; then
   index_sum="$(sha256sum "$INDEX_MD" | cut -d' ' -f1)"
 fi
 script_sum="$(sha256sum "${BASH_SOURCE[0]:-$0}" | cut -d' ' -f1)"
-key="$rev:$index_sum:$script_sum"
+cfg_sum="$(sha256sum "$QUARTZ_CFG" | cut -d' ' -f1)"
+key="$rev:$index_sum:$script_sum:$cfg_sum"
 
 if [ -f "$BUILD/published.rev" ] && [ "$(cat "$BUILD/published.rev")" = "$key" ]; then
   exit 0 # nothing to publish since the last run
