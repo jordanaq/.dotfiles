@@ -2,6 +2,7 @@
 
 {
   home.pointerCursor = {
+    enable = true;
     gtk.enable = true;
     name = "Catppuccin Macchiato";
     package = pkgs.catppuccin-cursors.macchiatoPink;
