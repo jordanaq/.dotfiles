@@ -1,15 +1,10 @@
 { config, pkgs, ... }:
 let
-  tex = (pkgs.texlive.combine {
-    inherit (pkgs.texlive)
-      scheme-full;
-      # pdfcol
-      # tcolorbox;
-      #(setq org-latex-compiler "lualatex")
-      #(setq org-preview-latex-default-process 'dvisvgm)
-  });
+  # scheme-full. `pkgs.texlive.combine` is deprecated (removal in nixpkgs 27.05);
+  # the equivalent pre-combined set is the top-level texliveFull.
+  tex = pkgs.texliveFull;
 in
-{ 
+{
   # programs.texlive = {
   #   enable = true;
   #   packageSet = pkgs.texlive.scheme-full;
