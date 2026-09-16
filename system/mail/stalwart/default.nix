@@ -16,10 +16,13 @@
 #   (PGP/MIME) mail passes through — unlike Scaleway TEM, whose fixed MIME
 #   allowlist forbids application/octet-stream and application/pgp-encrypted
 #   (every encrypted message relayed through it bounced with a 501/5.6.0).
-#   Direct-to-MX ('mx') and Scaleway ('scaleway') are retained as
-#   defined-but-unused fallback routes. Outbound port 25 is OPEN from this box
-#   (verified 2026-09-13), so direct delivery stays a viable fallback. An AWS
-#   SES route may replace SMTP2GO later; its DNS records are already published.
+#   Direct-to-MX ('mx'), Scaleway ('scaleway') and SES ('ses') are retained as
+#   defined-but-unused fallback routes. 'ses' is the planned relay: AWS SES,
+#   out of sandbox since 2026-09-15, region eu-central-1 (Frankfurt); its DNS is
+#   fully published and verified — MAIL FROM bounce.tsiru.pet (SPF include
+#   amazonses.com + feedback MX) and all three Easy DKIM CNAMEs. Outbound port
+#   25 is OPEN from this box (verified 2026-09-13), so direct delivery stays a
+#   viable fallback.
 #
 # TLS: the certificate for mail.<domain> is issued by security.acme using the
 #   Spaceship DNS-01 provider (lego, which security.acme drives, speaks the
@@ -309,6 +312,17 @@ in
         # and needs NO SPF include — its return-path CNAME covers SPF, so the
         # apex SPF is untouched.
         #
+        # 'ses' is DORMANT (planned replacement for smtp2go): an authenticated
+        # SMTP relay to AWS SES, region eu-central-1 (Frankfurt). Port 587 is
+        # STARTTLS (not implicit), hence implicitTls = false. Address is this
+        # account's unique SES SMTP host (from the SES SMTP credentials CSV).
+        # Like 'scaleway', authUsername is deliberately NOT set here — 0.16 has
+        # no file variant for a username, and the SES SMTP username is a
+        # credential, so it stays out of this repo and is set once in the WebUI
+        # (Settings › MTA › Outbound › Routes › ses → Username). Provisioning's
+        # upsert preserves it across applies. The password is file-sourced at
+        # runtime from /etc/secrets/ses.smtp-password.
+        #
         # 'mx' (direct-to-MX) is DORMANT — retained as a fallback. It is
         # deliberately IPv4-only (ipLookupStrategy = v4Only): the box has a
         # global IPv6 (2600:3c03::2000:3bff:fe72:8527) with NO PTR and no AAAA
@@ -337,6 +351,21 @@ in
                 filePath = "/etc/secrets/smtp2go.smtp-password";
               };
             };
+            ses = {
+              "@type" = "Relay";
+              name = "ses";
+              address = "faqamk3iehr7.eig6.mail-manager-smtp.amazonaws.com";
+              port = 587;
+              protocol = "smtp";
+              implicitTls = false; # SES SMTP :587 is STARTTLS, not implicit
+              # authUsername intentionally omitted — it is a credential, so it
+              # is kept out of this repo and set once in the WebUI (see comment
+              # above); provisioning's upsert preserves it.
+              authSecret = {
+                "@type" = "File";
+                filePath = "/etc/secrets/ses.smtp-password";
+              };
+            };
             mx = {
               "@type" = "Mx";
               name = "mx";
@@ -363,6 +392,7 @@ in
   # --- Secrets this module requires on the box (0600, created before switch) --
   #   /etc/secrets/spaceship.env           SPACESHIP_API_KEY=... / SPACESHIP_API_SECRET=...
   #   /etc/secrets/smtp2go.smtp-password   SMTP2GO SMTP-user password (root:stalwart 640)
+  #   /etc/secrets/ses.smtp-password       AWS SES SMTP password (root:stalwart 640)
   #   /etc/secrets/scaleway.smtp-user      Scaleway SMTP username (from the TEM panel)
   #   /etc/secrets/scaleway.smtp-password  Scaleway API secret key
   #   /etc/secrets/stalwart-admin-password PLAINTEXT admin password (0.16; the
