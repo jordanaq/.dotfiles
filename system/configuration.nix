@@ -147,8 +147,12 @@ in {
     };
 
     displayManager.setupCommands = ''
-      ${pkgs.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 1440x868 --refresh 144
-      ${pkgs.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 0x0 --rotation right --refresh 120
+      # X setup for the SDDM X11 greeter. The connector->monitor mapping is:
+      #   DP-2 = MSI MAG321CQR (32", 144Hz) -> physically LEFT, mounted VERTICAL
+      #   DP-1 = ASUS XG27ACDNG (27", 360Hz) -> physically RIGHT, normal
+      # i.e. the same layout as the Hyprland session (DP-2 gets `transform, 1`).
+      ${pkgs.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 0x0 --rotation right --refresh 144
+      ${pkgs.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 1440x868 --refresh 120
     '';
   };
 
@@ -156,12 +160,34 @@ in {
     sddm = {
       enable = true;
       theme = "catppuccin-sddm-corners";
+      # SDDM 0.21 is built against Qt6 (qtbase/qtdeclarative 6.11), but the
+      # catppuccin-sddm-corners theme imports Qt5Compat.GraphicalEffects.
+      # That QML module lives in qt6.qt5compat, which is NOT in sddm's own
+      # closure, so the greeter dies with
+      #   PowerPanel.qml:3:1: module "Qt5Compat.GraphicalEffects" is not installed
+      # and refuses to load the theme. The NixOS module appends extraPackages to
+      # the sddm wrapper's buildInputs, and wrapQtAppsHook adds every input's
+      # lib/qt-6/qml dir to the greeter's QML import path — which is the missing
+      # piece. (qt5.qtgraphicaleffects is the Qt5 module and cannot satisfy a
+      # Qt6 import.)
+      extraPackages = with pkgs; [ qt6.qt5compat ];
     };
   };
 
   programs.hyprland = {
     enable = true;
     xwayland.enable = true;  # Optional: Enable XWayland support
+    # Run the Hyprland session through UWSM, so it becomes a systemd user
+    # service that activates graphical-session.target. Two things depend on
+    # this: (a) user units wired to graphical-session.target (waybar.service,
+    # foot-server.service, the polkit agent) only start when that target goes
+    # up, which a bare Hyprland launch never does; and (b) it is what installs
+    # uwsm's own systemd user units. Without withUWSM, the greeter still offers
+    # a "Hyprland (uwsm-managed)" entry (the Hyprland package ships that
+    # .desktop itself) but uwsm's units are absent, so `systemctl --user start
+    # wayland-session-bindpid@<pid>.service` returns exit 5 "unit not found"
+    # and the session dies one second in — black screen.
+    withUWSM = true;
   };
 
   security.rtkit.enable = true;
