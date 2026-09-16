@@ -83,7 +83,9 @@ in {
     # Default deny. Public traffic is only Caddy's web ports plus the mail
     # ports Stalwart listens on. TCP only — mail uses no UDP, and ICMP/ping is
     # governed separately (allowPing, default true).
-    #   22   → SSH
+    #   22   → SSH (TAILNET-ONLY: closed to the public internet — pentest 2026-09-15.
+    #          Works over Tailscale via trustedInterfaces=[tailscale0] below; use
+    #          Linode LISH out-of-band if the tailnet is ever down.)
     #   80   → ACME HTTP-01 challenge (Caddy)
     #   443  → HTTPS (Caddy-terminated TLS: web, webmail, admin, JMAP/CalDAV)
     #   25   → SMTP (inbound mail from other servers)
@@ -97,7 +99,7 @@ in {
     #   system/mail/stalwart/default.nix.
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 80 443 25 465 587 993 ];
+      allowedTCPPorts = lib.mkForce [ 80 443 25 465 587 993 ];  # mkForce: exact public allowlist; CLOSES :22 (default [22 80 443] would otherwise leak a public SSH). SSH stays reachable over Tailscale via trustedInterfaces=[tailscale0].
     };
   };
 
