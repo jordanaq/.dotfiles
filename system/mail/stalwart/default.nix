@@ -11,18 +11,15 @@
 # module for 0.16+", head 8b05caa6) — the stock 0.15.5 module cannot drive
 # 0.16. DROP the vendored module + overlay once nixpkgs ships stalwart >= 0.16.
 #
-# OUTBOUND = SMTP2GO relay (MtaRoute 'smtp2go' below), for reliable delivery
-#   from a young domain. SMTP2GO is MIME-agnostic, so end-to-end encrypted
-#   (PGP/MIME) mail passes through — unlike Scaleway TEM, whose fixed MIME
-#   allowlist forbids application/octet-stream and application/pgp-encrypted
-#   (every encrypted message relayed through it bounced with a 501/5.6.0).
-#   Direct-to-MX ('mx'), Scaleway ('scaleway') and SES ('ses') are retained as
-#   defined-but-unused fallback routes. 'ses' is the planned relay: AWS SES,
-#   out of sandbox since 2026-09-15, region eu-central-1 (Frankfurt); its DNS is
-#   fully published and verified — MAIL FROM bounce.tsiru.pet (SPF include
-#   amazonses.com + feedback MX) and all three Easy DKIM CNAMEs. Outbound port
-#   25 is OPEN from this box (verified 2026-09-13), so direct delivery stays a
-#   viable fallback.
+# OUTBOUND = AWS SES relay (MtaRoute 'ses' below) — a real, MIME-agnostic MTA,
+#   out of sandbox since 2026-09-15 (region eu-central-1 / Frankfurt), so
+#   end-to-end encrypted (PGP/MIME) mail passes through, unlike Scaleway TEM's
+#   fixed allowlist (which bounced octet-stream with a 501/5.6.0). MAIL FROM
+#   bounce.tsiru.pet + all three Easy DKIM CNAMEs are published & verified.
+#   SMTP2GO ('smtp2go', previously active), direct-to-MX ('mx') and Scaleway
+#   ('scaleway') are retained as defined-but-unused fallback routes. Outbound
+#   port 25 is OPEN from this box (verified 2026-09-13), so direct delivery
+#   stays a viable fallback.
 #
 # TLS: the certificate for mail.<domain> is issued by security.acme using the
 #   Spaceship DNS-01 provider (lego, which security.acme drives, speaks the
@@ -144,11 +141,12 @@ in
           # field — without it apply fails with `defaultDomainId: required`.
           defaultDomainId = "#main";
         };
-        # Local domain stays local, everything else → the SMTP2GO relay
-        # (MtaRoute 'smtp2go' below). History: 'scaleway' (TEM) → 'mx' (direct)
-        # on 2026-09-13 → 'smtp2go' now. Same Expression form as 0.15's
-        # if_then(rcpt_domain == 'tsiru.pet', 'local', 'smtp2go'). The then/else
-        # values are expression literals, hence the inner quotes.
+        # Local domain stays local, everything else → the SES relay
+        # (MtaRoute 'ses' below). History: 'scaleway' (TEM) → 'mx' (direct) on
+        # 2026-09-13 → 'smtp2go' → 'ses' (AWS, out of sandbox eu-central-1).
+        # Same Expression form as 0.15's if_then(rcpt_domain == 'tsiru.pet',
+        # 'local', 'ses'). The then/else values are expression literals, hence
+        # the inner quotes.
         MtaOutboundStrategy = {
           route = {
             match = [
@@ -157,7 +155,7 @@ in
                 "then" = "'local'";
               }
             ];
-            "else" = "'smtp2go'";
+            "else" = "'ses'";
           };
         };
 
@@ -302,12 +300,12 @@ in
 
         # Outbound routes.
         #
-        # 'smtp2go' is the ACTIVE route: an authenticated SMTP relay
-        # (mail.smtp2go.com:465, implicit TLS). Chosen for deliverability from a
-        # young domain; MIME-agnostic so PGP/MIME passes. authUsername is a
-        # plain string, committed directly — a login name is not a secret (0.16
-        # removed %{file:…}% macros, so there is no file variant anyway); the
-        # password is read from the file at runtime. SMTP2GO verifies the
+        # 'smtp2go' is now DORMANT (was active before the SES switch): an
+        # authenticated SMTP relay (mail.smtp2go.com:465, implicit TLS), kept as
+        # a fallback because it is MIME-agnostic so PGP/MIME passes. authUsername
+        # is a plain string, committed directly — a login name is not a secret
+        # (0.16 removed %{file:…}% macros, so there is no file variant anyway);
+        # the password is read from the file at runtime. SMTP2GO verifies the
         # sending domain via three CNAMEs (dkim / return-path / click-tracking)
         # and needs NO SPF include — its return-path CNAME covers SPF, so the
         # apex SPF is untouched.
