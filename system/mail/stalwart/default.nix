@@ -16,10 +16,9 @@
 #   end-to-end encrypted (PGP/MIME) mail passes through, unlike Scaleway TEM's
 #   fixed allowlist (which bounced octet-stream with a 501/5.6.0). MAIL FROM
 #   bounce.tsiru.pet + all three Easy DKIM CNAMEs are published & verified.
-#   SMTP2GO ('smtp2go', previously active), direct-to-MX ('mx') and Scaleway
-#   ('scaleway') are retained as defined-but-unused fallback routes. Outbound
-#   port 25 is OPEN from this box (verified 2026-09-13), so direct delivery
-#   stays a viable fallback.
+#   SMTP2GO ('smtp2go', previously active) and direct-to-MX ('mx') are retained
+#   as defined-but-unused fallback routes. Outbound port 25 is OPEN from this
+#   box (verified 2026-09-13), so direct delivery stays a viable fallback.
 #
 # TLS: the certificate for mail.<domain> is issued by security.acme using the
 #   Spaceship DNS-01 provider (lego, which security.acme drives, speaks the
@@ -314,9 +313,9 @@ in
         # SMTP relay to AWS SES, region eu-central-1 (Frankfurt). Port 587 is
         # STARTTLS (not implicit), hence implicitTls = false. Address is this
         # account's unique SES SMTP host (from the SES SMTP credentials CSV).
-        # Like 'scaleway', authUsername is deliberately NOT set here — 0.16 has
-        # no file variant for a username, and the SES SMTP username is a
-        # credential, so it stays out of this repo and is set once in the WebUI
+        # authUsername is deliberately NOT set here — 0.16 has no file variant
+        # for a username, and the SES SMTP username is a credential, so it stays
+        # out of this repo and is set once in the WebUI
         # (Settings › MTA › Outbound › Routes › ses → Username). Provisioning's
         # upsert preserves it across applies. The password is file-sourced at
         # runtime from /etc/secrets/ses.smtp-password.
@@ -327,11 +326,6 @@ in
         # on mail.<domain>, so sending over v6 would fail FCrDNS and spam-fold.
         # To enable IPv6 later: set the IPv6 rDNS at Linode + add an AAAA for
         # mail.<domain> + an ip6: term in SPF, then switch to v4ThenV6.
-        #
-        # 'scaleway' (the TEM relay) is DORMANT too. Its secret is NOT in this
-        # repo: authSecret reads the file path at runtime. The username
-        # (Scaleway project ID) is kept out of the repo — set it once in the
-        # WebUI (Settings › MTA › Outbound › Routes → scaleway → authUsername).
         MtaRoute = {
           reconcile = false;
           match = [ "name" ];
@@ -369,18 +363,6 @@ in
               name = "mx";
               ipLookupStrategy = "v4Only";
             };
-            scaleway = {
-              "@type" = "Relay";
-              name = "scaleway";
-              address = "smtp.tem.scaleway.com";
-              port = 2465;
-              protocol = "smtp";
-              implicitTls = true;
-              authSecret = {
-                "@type" = "File";
-                filePath = "/etc/secrets/scaleway.smtp-password";
-              };
-            };
           };
         };
       };
@@ -391,14 +373,8 @@ in
   #   /etc/secrets/spaceship.env           SPACESHIP_API_KEY=... / SPACESHIP_API_SECRET=...
   #   /etc/secrets/smtp2go.smtp-password   SMTP2GO SMTP-user password (root:stalwart 640)
   #   /etc/secrets/ses.smtp-password       AWS SES SMTP password (root:stalwart 640)
-  #   /etc/secrets/scaleway.smtp-user      Scaleway SMTP username (from the TEM panel)
-  #   /etc/secrets/scaleway.smtp-password  Scaleway API secret key
   #   /etc/secrets/stalwart-admin-password PLAINTEXT admin password (0.16; the
   #                                         0.15 sha512 hash file is obsolete)
-  # NOTE: /etc/secrets/scaleway.smtp-user is read by NOTHING — 0.16 removed the
-  # %{file:…}% macros and authUsername is a plain string with no file variant.
-  # Set it once in the WebUI (Settings › MTA › Outbound › Routes › scaleway →
-  # Username); provisioning's upsert preserves it.
   # DKIM is now Stalwart's own (dkimManagement = Automatic), and DKIM rotation +
   # TLSA publishing are Automatic too via a Spaceship DnsServer object held in the
   # datastore — its API key is read from /etc/secrets/spaceship.env by a one-time
