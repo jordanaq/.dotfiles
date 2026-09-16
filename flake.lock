@@ -591,6 +591,22 @@
         "url": "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz"
       }
     },
+    "nixpkgs-jabref": {
+      "locked": {
+        "lastModified": 1789385201,
+        "narHash": "sha256-Aa4nJe5rDso7VHr+Bojw7fJrixpA/6nOcA70hRyx7O8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "43cdda9805a138b9441a1fa09ec4d8e795797424",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "43cdda9805a138b9441a1fa09ec4d8e795797424",
+        "type": "github"
+      }
+    },
     "nixpkgs-lib": {
       "locked": {
         "lastModified": 1765674936,
@@ -792,6 +808,7 @@
         "hyprland": "hyprland",
         "hyprland-plugins": "hyprland-plugins",
         "nixpkgs": "nixpkgs_5",
+        "nixpkgs-jabref": "nixpkgs-jabref",
         "nixvirt": "nixvirt",
         "zen-browser": "zen-browser"
       }

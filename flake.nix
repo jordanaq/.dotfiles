@@ -43,6 +43,28 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+
+    # jabref is deliberately pinned to a nixpkgs master commit.
+    #
+    # The nixpkgs rev this flake tracks (nixos-unstable) ships jabref
+    # 6.0-alpha.4 with `kotlinDslVersion = "6.4.2"`. That forced Kotlin-DSL
+    # plugin pulls kotlin-stdlib:2.4.0, which is NOT in the derivation's
+    # offline Gradle dep mirror (deps.json), so `nix-shell -p jabref` dies with
+    # "Could not find org.jetbrains.kotlin:kotlin-stdlib:2.4.0 -> BUILD FAILED"
+    # and there is no prebuilt binary in cache.nixos.org for that rev either
+    # (so nix falls back to a from-source build that always fails). Failing
+    # with the sandbox disabled too, so it is a broken dependency pin upstream,
+    # not a network block.
+    #
+    # The commit below is the merge of NixOS/nixpkgs PR #560905
+    # ("jabref: update kotlin-dsl", kotlinDsl 6.4.2 -> 6.7.3), which fixes the
+    # build. It also ships JavaFX 25, which carries the OpenJFX fix for the
+    # ToolBarSkin focus-traversal NPE (JDK-8364088) that JabRef 5.13 (JavaFX 22)
+    # throws as an "Uncaught exception occurred" dialog.
+    #
+    # ACTION (cleanup): once nixos-unstable carries PR #560905, delete this
+    # input and use plain `pkgs.jabref` in user/media/study-tools.nix.
+    nixpkgs-jabref.url = "github:NixOS/nixpkgs/43cdda9805a138b9441a1fa09ec4d8e795797424";
   };
 
   outputs = { self, nixpkgs, catppuccin, home-manager, nixvirt, ... }@inputs:
