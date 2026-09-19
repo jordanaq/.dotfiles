@@ -270,7 +270,10 @@ in
           }
         '';
         extraConfig = ''
-          reverse_proxy 127.0.0.1:9980
+          # Collabora (net.listen=loopback) binds ::1 (IPv6 loopback) on this
+          # box — NOT 127.0.0.1 — so proxy to [::1] or the reverse_proxy is
+          # refused (was the office 502). Plaintext on loopback; TLS by Caddy.
+          reverse_proxy [::1]:9980
         '';
       };
 
