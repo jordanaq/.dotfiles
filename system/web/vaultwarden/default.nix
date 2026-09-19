@@ -90,6 +90,6 @@
     # Backups NOT enabled yet (see Discord reminder "Remind: Vaultwarden has NO
     # backup"). To enable, uncomment — adds backup-vaultwarden.service + 23:00
     # timer running `sqlite3 .backup` + copying attachments:
-    #   backupDir = "/var/backup/vaultwarden";
+    backupDir = "/var/backup/vaultwarden";
   };
 }
