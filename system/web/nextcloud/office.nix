@@ -14,17 +14,24 @@
     # caddy.nix already reverse-proxies to — no port/Caddy change needed.
 
     settings = {
-      # Caddy terminates TLS in front, so Collabora must serve plaintext behind
-      # it, and must know TLS already ended upstream so it still emits https
-      # links (and the browser doesn't get a mixed-content editor).
-      "ssl.enable"      = false;
-      "ssl.termination" = true;
-
-      # Loopback only: nothing public touches Collabora except the Caddy proxy.
-      "net.listen"      = "127.0.0.1";
-
+      # NESTED attrset form is REQUIRED — the module's yq merge turns each
+      # attribute into a literal XML tag, so a dotted key like "ssl.enable" would
+      # emit a literal <ssl.enable> tag that coolwsd ignores (verified: it left
+      # SSL on and net.listen at "any", producing the 502). Nest to get
+      # <ssl><enable> and <net><listen>.
+      ssl = {
+        # Caddy terminates TLS in front, so Collabora serves plaintext behind it
+        # and must know TLS already ended upstream to still emit https links.
+        enable      = false;
+        termination = true;
+      };
+      net = {
+        # Loopback only. coolwsd accepts the literals "any" / "loopback" here
+        # (not an IP address): nothing public touches Collabora except Caddy.
+        listen = "loopback";
+      };
       # The Host the browser reaches Collabora at (office.<domain>).
-      "server_name"     = "https://office.${domain}";
+      server_name = "https://office.${domain}";
     };
 
     # Memory cap + WOPI security.
