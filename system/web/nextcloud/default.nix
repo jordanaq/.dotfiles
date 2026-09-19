@@ -18,8 +18,16 @@ in {
     config = {
       dbtype = "sqlite";
 
-      adminuser = "admin";
-      adminpassFile = "/etc/secrets/nextcloud-admin-pass";
+      # The admin account was provisioned by the FIRST setup run; adminpassFile
+      # has since been deleted (good hygiene). But the module still wires it into
+      # nextcloud-setup.service's LoadCredential, so with the file gone that unit
+      # fails on every boot (status=243/CREDENTIALS, "Failed to set up
+      # credentials"). Nulling BOTH (the option pair is assertively coupled)
+      # removes the credential requirement — on an already-installed instance
+      # setup then only runs maintenance/trusted_domains/app-enable, which is
+      # the correct post-provision state. Only keep these set on a FRESH install.
+      adminuser     = null;
+      adminpassFile = null;
     };
 
     settings = {
