@@ -29,8 +29,11 @@
         # (not an IP address): nothing public touches Collabora except Caddy.
         listen = "loopback";
       };
-      # The Host the browser reaches Collabora at (office.<domain>).
-      server_name = "https://office.${domain}";
+      # The Host the browser reaches Collabora at. Host ONLY — no scheme:
+      # Collabora prepends https:// itself (from ssl.termination=true). A scheme
+      # here makes it emit urlscr="https://https://office..." in /hosting/discovery,
+      # which broke Bulwark's WOPI launch (CSP form-action refused it).
+      server_name = "office.${domain}";
     };
 
     # Memory cap + WOPI security.
