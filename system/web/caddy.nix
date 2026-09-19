@@ -197,8 +197,9 @@ in
         extraConfig = ''
           # Collabora (net.listen=loopback) binds ::1 (IPv6 loopback), NOT
           # 127.0.0.1 — proxy to [::1] or the reverse_proxy is refused (the
-          # office 502). Plaintext on loopback; TLS by Caddy.
-          reverse_proxy [::1]:9980
+          # office 502). Plaintext on loopback; TLS by Caddy. Port 9983 = the
+          # CODE AppImage's hardcoded AppRun port (not 9980).
+          reverse_proxy [::1]:9983
         '';
       };
 

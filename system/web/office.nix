@@ -3,9 +3,9 @@
 #
 # CODE is packaged from Collabora's official AppImage in ./collabora-code.nix
 # (NOT the nixpkgs collabora-online module, which is still 25.04 and lacks the
-# AI assistant). Caddy terminates TLS and proxies to [::1]:9980 (CODE binds
-# net.listen=loopback = IPv6 loopback). Bulwark (webmail.<domain>) is the WOPI
-# host that mints the token and serves the file.
+# AI assistant). Caddy terminates TLS and proxies [::1]:9983 (the AppImage's
+# AppRun hardcodes --port=9983; net.listen=loopback = IPv6 loopback). Bulwark
+# (webmail.<domain>) is the WOPI host that mints the token and serves the file.
 #
 # LanguageTool is a native NixOS service on loopback only (NOT :8081 — Calibre
 # owns 127.0.0.1:8081, so LanguageTool uses :8091).
@@ -87,7 +87,11 @@ in
       # unit). So build a single escaped string from the arg list.
       ExecStart = lib.concatStringsSep " " (map lib.escapeShellArg [
         "${collaboraCode}/bin/collabora-online-code"
-        "--port=9980"
+        # NOTE: no --port here. The CODE AppImage's AppRun launcher passes its
+        # OWN --port=9983 (it's built as Nextcloud-embedded CODE, not a 9980
+        # standalone); adding --port here makes coolwsd exit with
+        # "Option must not be given more than once: port". So the listener is
+        # 9983 → Caddy proxies office.<domain> to [::1]:9983.
         "--use-env-vars"
 
         # Caddy owns TLS.
@@ -96,6 +100,10 @@ in
 
         # Keep CODE private; Caddy is the only public entry point.
         "--o:net.listen=loopback"
+
+        # The AppImage forces net.proxy_prefix=true; that breaks the plain
+        # Caddy reverse_proxy (URLs come out double-prefixed). Override to false.
+        "--o:net.proxy_prefix=false"
 
         "--o:server_name=office.${domain}"
 
