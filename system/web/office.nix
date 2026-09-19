@@ -11,8 +11,12 @@
 # owns 127.0.0.1:8081, so LanguageTool uses :8091).
 #
 # AI provider defaults to Nous Portal / DeepSeek V4 Flash Latest. The API key is
-# intentionally NOT stored here: enter it once per-user via
-# Collabora → AI settings so it never enters the nix store or process argv.
+# intentionally NOT stored here: it is supplied per-user via the WOPI
+# `UserPrivateInfo` field in Bulwark's CheckFileInfo (the old "enter it in
+# Collabora → AI settings" flow is impossible here — Bulwark doesn't implement
+# the settings-iframe surface, so the Options gear is hidden). Put the key in
+# /etc/secrets/bulwark.env as COLLABORA_AI_PRIVATE_INFO (see system/mail/bulwark.nix
+# postInstall + README) so it never enters the nix store or process argv.
 {
   config,
   lib,

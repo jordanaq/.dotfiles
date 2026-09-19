@@ -44,6 +44,38 @@ let
     sourceRoot = "bulwark-standalone";
     dontConfigure = true;
     dontBuild = true;
+    # Bulwark ships PREBUILT (turbopack chunks, no build step), so a WOPI
+    # behavior change must be a text patch of the compiled output, applied here
+    # in the derivation so it survives the bulwark-setup --delete rsync on
+    # every redeploy.
+    #
+    # Inject per-user AI credentials into the WOPI CheckFileInfo response.
+    # Collabora reads AI provider creds from the standard WOPI `UserPrivateInfo`
+    # field when a host doesn't implement the UserSettings presets store; see
+    # CollaboraOnline/online commit 9a11666. The value is a JSON-string; the
+    # API key intentionally lives ONLY in /etc/secrets/bulwark.env (never the
+    # nix store or git), read at runtime via COLLABORA_AI_PRIVATE_INFO.
+    # Sanity check: the patch must actually land, or AI silently breaks. The
+    # CheckFileInfo handler lives in a version-named turbopack chunk under
+    # .next/server/chunks (route.js is only a loader that requires the chunk),
+    # so find the file by its anchor string rather than a hardcoded name.
+    postInstall = ''
+      anchor='PostMessageOrigin:o.payload.origin})'
+      target="$(grep -rlF "$anchor" "$out/.next/server/chunks" | head -n1)"
+
+      if [ -z "$target" ]; then
+        echo 'WOPI AI patch: CheckFileInfo anchor not found in any chunk' >&2
+        echo '(Bulwark upgrade may have renamed/removed it)' >&2
+        exit 1
+      fi
+
+      substituteInPlace "$target" \
+        --replace "$anchor" \
+          'PostMessageOrigin:o.payload.origin,...(process.env.COLLABORA_AI_PRIVATE_INFO?{UserPrivateInfo:process.env.COLLABORA_AI_PRIVATE_INFO}:{})})'
+
+      grep -q 'UserPrivateInfo:process.env.COLLABORA_AI_PRIVATE_INFO' "$target" \
+        || { echo 'WOPI AI patch failed to apply (unexpected chunk layout)' >&2; exit 1; }
+    '';
     # The bundle vendors its own node_modules; no fixup/wrapping needed.
     dontFixup = true;
     installPhase = ''

@@ -74,7 +74,7 @@ itself at runtime are `0640 root:stalwart` (called out per row below).
 | `/etc/secrets/smtp2go.smtp-password` | SMTP2GO API key | **Active** outbound relay — read by the `stalwart` user at runtime (`0640 root:stalwart`) |
 | `/etc/secrets/scaleway.smtp-password` | Scaleway API secret key | Dormant fallback route (Scaleway TEM) — not used while SMTP2GO is active |
 | `/etc/secrets/stalwart-admin-password` | plaintext admin password | Stalwart's fallback administrator (`admin`), read by the `stalwart` user (`0640 root:stalwart`) |
-| `/etc/secrets/bulwark.env` | `SESSION_SECRET` | Bulwark session encryption (64+ random chars) |
+| `/etc/secrets/bulwark.env` | `SESSION_SECRET` (required), `COLLABORA_AI_PRIVATE_INFO` (optional) | Bulwark session encryption (64+ random chars). `COLLABORA_AI_PRIVATE_INFO`, when set, is the JSON-string passed as WOPI `UserPrivateInfo` to Collabora — the per-user AI provider credentials (so Collabora's own user-settings dialog is not needed; Bulwark doesn't implement it). Format: `{"AIProviderAPIKey":"sk-…","AIProviderModel":"~deepseek/deepseek-v4-flash-latest","AIProviderURL":"https://inference-api.nousresearch.com"}` (a literal JSON string in the env value). See `system/mail/bulwark.nix` postInstall. |
 | `/etc/secrets/vaultwarden.env` | `ADMIN_TOKEN`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Vaultwarden admin token + outbound mail via Stalwart |
 
 ```bash
