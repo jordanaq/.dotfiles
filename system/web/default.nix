@@ -11,6 +11,7 @@
     ./searx.nix
     ./linkstack.nix
     ./calibre
+    ./nextcloud
     ./notes-site
     ./vaultwarden
   ];

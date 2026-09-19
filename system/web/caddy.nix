@@ -246,6 +246,34 @@ in
         '';
       };
 
+      # cloud.<domain> - Nextcloud. Caddy.
+      # caddy for gate and login
+      "cloud.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-nextcloud.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          reverse_proxy 127.0.0.1:8082
+        '';
+      };
+
+      # office.<domain> - Collabora. Caddy.
+      # caddy for gate and login
+      "office.${domain}" = {
+        logFormat = ''
+          output file /var/log/caddy/access-office.${domain}.log {
+            roll_size 10MiB
+            roll_keep 5
+          }
+        '';
+        extraConfig = ''
+          reverse_proxy 127.0.0.1:9980
+        '';
+      };
+
       # webmail.<domain> — Bulwark (system/mail/bulwark.nix). Public: Bulwark's own
       # login gates it, and the login IS the mail account.
       "webmail.${domain}" = {
