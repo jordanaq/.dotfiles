@@ -24,16 +24,17 @@
         enable      = false;
         termination = true;
       };
-      net = {
-        # Loopback only. coolwsd accepts the literals "any" / "loopback" here
-        # (not an IP address): nothing public touches Collabora except Caddy.
-        listen = "loopback";
-      };
+      net.listen = "loopback";
       # The Host the browser reaches Collabora at. Host ONLY — no scheme:
       # Collabora prepends https:// itself (from ssl.termination=true). A scheme
       # here makes it emit urlscr="https://https://office..." in /hosting/discovery,
       # which broke Bulwark's WOPI launch (CSP form-action refused it).
       server_name = "office.${domain}";
+
+      num_prespawn_children = 1;
+      memproportion = 70.0;
+      admin_console.enable = false;
+
     };
 
     # Memory cap + WOPI security.
@@ -46,7 +47,13 @@
     #    not serialize arrays cleanly.
     extraArgs = [
       "--o:num_workers=1"
-      "--o:storage.wopi.allow[0]=https://webmail.${domain}"
+    ];
+    
+    aliasGroups = [
+      {
+        host = "https://webmail.${domain}:443";
+        aliases = [ ];
+      }
     ];
   };
 }
