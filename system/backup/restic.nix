@@ -61,7 +61,7 @@
     };
 
     script = ''
-      token=$(cat "$CREDENTIALS_DIRECTORY/push-token")"
+      token="$(cat "$CREDENTIALS_DIRECTORY/push-token")"
 
       ${pkgs.curl}/bin/curl \
         --fail \
@@ -85,7 +85,7 @@
     };
 
     script = ''
-      token=$(cat "$CREDENTIALS_DIRECTORY/push-token")"
+      token="$(cat "$CREDENTIALS_DIRECTORY/push-token")"
 
       ${pkgs.curl}/bin/curl \
         --fail \
