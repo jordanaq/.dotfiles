@@ -11,13 +11,14 @@ let
   uname = "tsiru";
 in {
   imports = [
-    ./hardware-configuration.nix
+    ./backup
     ./constants.nix
-    ./web
+    ./hardware-configuration.nix
     ./mail
     ./monitoring
-    ./security
     ./networking
+    ./security
+    ./web
   ];
 
   # --- Boot ---------------------------------------------------------------
