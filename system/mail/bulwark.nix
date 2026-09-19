@@ -20,7 +20,7 @@
 
 let
   # Bump to upgrade. Hash recompute:  nix store prefetch-file <url>
-  version = "1.9.2";
+  version = "1.10.0";
 
   user = "bulwark";
   group = "bulwark";
@@ -35,7 +35,7 @@ let
 
   bulwarkSrc = pkgs.fetchurl {
     url = "https://github.com/bulwarkmail/webmail/releases/download/${version}/bulwark-standalone-${version}-linux-amd64.tar.gz";
-    hash = "sha256-a1+Ob/qEs9nT+UPpd4abEOl1GzgJq93zrAzQ7T0keQs=";
+    hash = "sha256:399c9bfc755ae420c24a98b91f6907c861a02c81c409a68661fd3a30baa31c27";
   };
 
   # Unpack the release into the store as a read-only reference copy. The tarball
