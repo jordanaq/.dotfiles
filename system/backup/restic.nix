@@ -7,7 +7,7 @@
   ];
 
   services.restic.backups.server = {
-    repository = "s3:https://tsiru-pet-backups.us-east-1.linodeobjects.com";
+    repository = "s3:https://us-east-1.linodeobjects.com/tsiru-pet-backups";
 
     environmentFile = "/etc/secrets/restic.env";
 
@@ -43,5 +43,10 @@
       Persistent = true;
       RandomizedDelaySec = "30m";
     };
+  };
+
+  systemd.services.restic-backups-server = {
+    requires = [ "stalwart-backup.service" ];
+    after = [ "stalwart-backup.service" ];
   };
 }

@@ -28,7 +28,7 @@ in {
     script = ''
       set -euo pipefail
 
-      export VANDELAY_PASSWORD = "$(cat "CREDENTIALS_DIRECTORY/password")"
+      export VANDELAY_PASSWORD="$(cat "$CREDENTIALS_DIRECTORY/password")"
 
       ${lib.concatMapStringsSep "\n" (account: ''
       ${pkgs.stalwart-vandelay}/bin/vandelay import jmap \
