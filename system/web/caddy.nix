@@ -246,20 +246,6 @@ in
         '';
       };
 
-      # cloud.<domain> - Nextcloud. Caddy.
-      # caddy for gate and login
-      "cloud.${domain}" = {
-        logFormat = ''
-          output file /var/log/caddy/access-nextcloud.${domain}.log {
-            roll_size 10MiB
-            roll_keep 5
-          }
-        '';
-        extraConfig = ''
-          reverse_proxy 127.0.0.1:8082
-        '';
-      };
-
       # office.<domain> - Collabora. Caddy.
       # caddy for gate and login
       "office.${domain}" = {

@@ -113,6 +113,10 @@ in
         "JMAP_SERVER_URL=${jmapUrl}"
         "ADMIN_CONFIG_DIR=${dataDir}/admin"
         "ADMIN_STATE_DIR=${dataDir}/state"
+
+        # Office via Collabora
+        "WOPI_CLIENT_URL=https://office.${domain}"
+        "WOPI_HOST_URL=https://webmail.${domain}"
       ];
       # SESSION_SECRET=... (required; encrypts sessions + settings sync)
       EnvironmentFile = "/etc/secrets/bulwark.env";

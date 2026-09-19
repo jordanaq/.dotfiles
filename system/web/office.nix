@@ -1,10 +1,9 @@
-# Collabora Online — Nextcloud's built-in "Nextcloud Office" editing, served at
-# office.<domain>. Caddy terminates TLS and proxies 127.0.0.1:9980
-# (system/web/caddy.nix). This is a native NixOS service
-# (services.collabora-online): NO container, NO podman — the light path vs the
-# OnlyOffice/EuroOffice container this replaced, and the standard "Nextcloud
-# Office" pairing (the Nextcloud `richdocuments` app is the browser-side
-# client, declared in system/web/nextcloud/default.nix).
+# Collabora Online — in-browser office editing for Bulwark's Files (WOPI),
+# served at office.<domain>. Caddy terminates TLS and proxies to [::1]:9980
+# (net.listen=loopback binds the IPv6 loopback; system/web/caddy.nix). A native
+# NixOS service (services.collabora-online): NO container, NO podman. Bulwark
+# (webmail.<domain>) is the WOPI host — it mints the access token and serves the
+# file over WOPI; this Collabora instance is the editor the browser embeds.
 { domain, ... }:
 
 {
@@ -37,14 +36,14 @@
     # Memory cap + WOPI security.
     #  - num_workers=1 limits concurrent document sessions — the single biggest
     #    Collabora RAM lever, and this box is 2 GB.
-    #  - storage.wopi.allow restricts which origin may *initiate* WOPI (only the
-    #    Nextcloud instance). Deliberately in the documented `--o:` CLI form
-    #    rather than the freeform `settings`, because allow is a list-valued
-    #    option and the module's XML-attribute merge (`@allow`) does not
-    #    serialize arrays cleanly.
+    #  - storage.wopi.allow restricts which origin may *initiate* WOPI — here the
+    #    Bulwark WOPI host at webmail.<domain>. Deliberately in the documented
+    #    `--o:` CLI form rather than the freeform `settings`, because allow is a
+    #    list-valued option and the module's XML-attribute merge (`@allow`) does
+    #    not serialize arrays cleanly.
     extraArgs = [
       "--o:num_workers=1"
-      "--o:storage.wopi.allow[0]=https://cloud.${domain}"
+      "--o:storage.wopi.allow[0]=https://webmail.${domain}"
     ];
   };
 }
