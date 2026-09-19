@@ -74,15 +74,17 @@ in {
     #          reachable via trustedInterfaces=[tailscale0]; use Linode LISH if down)
     #   80   → ACME HTTP-01 challenge (Caddy)
     #   443  → HTTPS (Caddy-terminated TLS: web, webmail, admin, JMAP/CalDAV)
-    #   25   → SMTP (inbound mail)
-    #   465  → SMTP submission (implicit TLS)
-    #   587  → SMTP submission (STARTTLS)
-    #   993  → IMAPS (implicit TLS)
+    #   25   → SMTP (inbound mail / MX)
+    # NOT opened: 465/587 (SMTP submission) and 993 (IMAPS). The only mail client
+    #   (Bulwark) is JMAP-only over :443; the only SMTP-submission consumer
+    #   (Vaultwarden) relays via loopback 127.0.0.1:587, which needs no firewall
+    #   hole. Stalwart listeners for 465/993 are deleted; submission rebinds
+    #   loopback-only. See system/mail/stalwart/default.nix.
     # NOT opened: 4190 (ManageSieve). Pentest F-11: Linode filters it upstream and
     #   nothing serves it (Sieve is managed over JMAP) — see system/mail/stalwart/default.nix.
     firewall = {
       enable = true;
-      allowedTCPPorts = lib.mkForce [ 80 443 25 465 587 993 ];  # mkForce: exact public allowlist; CLOSES :22 (default [22 80 443] would otherwise leak a public SSH). SSH stays reachable over Tailscale via trustedInterfaces=[tailscale0].
+      allowedTCPPorts = lib.mkForce [ 80 443 25 ];  # mkForce: exact public allowlist; CLOSES :22 (default [22 80 443] would otherwise leak a public SSH). SSH stays reachable over Tailscale via trustedInterfaces=[tailscale0].
     };
   };
 

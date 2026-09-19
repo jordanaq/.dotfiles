@@ -183,11 +183,12 @@ in
         };
 
         # 0.16 has no 'submission' protocol enum — SMTP listeners serve both MX
-        # and submission (587/465 distinguished by TLS setup / stage).
+        # and submission (TLS stage distinguishes them; 465/587 folding abandoned
+        # — external submission is loopback-only via :587, see below).
         NetworkListener = {
           # Reconcile (not upsert) so 0.16's auto-created defaults are purged:
-          # https:443 collides with Caddy, pop3s:995 is unused, imaps:993
-          # duplicates our imap. Only the six declared survive.
+          # https:443 collides with Caddy, pop3s:995 is unused/never opened,
+          # imaps:993 duplicates our old imap. Only the three declared survive.
           reconcile = true;
           match = [ "name" ];
           objects = {
@@ -196,28 +197,21 @@ in
               protocol = "smtp";
               bind = [ "0.0.0.0:25" ];
             };
+            # SMTP submission, LOOPBACK-ONLY. The only authenticated submission
+            # consumer is Vaultwarden (2FA/hint/admin mail), which connects to
+            # 127.0.0.1:587. No internet client uses 465/587 (Bulwark is JMAP-only
+            # over :443), so there is no public submission listener and no
+            # allowedTCPPorts entry for it. Loopback needs no firewall hole.
             submission = {
               name = "submission";
               protocol = "smtp";
-              bind = [ "0.0.0.0:587" ];
-            };
-            submissions = {
-              name = "submissions";
-              protocol = "smtp";
-              bind = [ "0.0.0.0:465" ];
-              tlsImplicit = true;
-            };
-            imap = {
-              name = "imap";
-              protocol = "imap";
-              bind = [ "0.0.0.0:993" ];
-              tlsImplicit = true;
+              bind = [ "127.0.0.1:587" ];
             };
             # Deliberately NO `sieve` (4190) listener: pentest F-11 flagged it as
             # config↔reality drift — Linode filters the port upstream, so no
-            # internet client could reach it (993 works). Nothing here speaks
-            # ManageSieve anyway (Bulwark/WebUI use JMAP SieveScript). Stay
-            # tailnet-only until Linode unfilters the port.
+            # internet client could reach it. Nothing here speaks ManageSieve
+            # anyway (Bulwark/WebUI use JMAP SieveScript). Stay tailnet-only
+            # until Linode unfilters the port.
             http = {
               name = "http";
               protocol = "http";
