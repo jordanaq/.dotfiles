@@ -29,12 +29,19 @@
       admin_console.enable = false;
 
     };
-    
-    aliasGroups = [
-      {
-        host = "https://webmail.${domain}:443";
-        aliases = [ ];
-      }
-    ];
   };
+
+  # WOPI host allowlist. IMPORTANT: this is a TOP-LEVEL module option
+  # (services.collabora-online.aliasGroups, a sibling of `settings`), NOT a
+  # member of `settings` — under `settings` it renders to a bogus
+  # <aliasGroups> XML tag, is dropped by the yq merge, and Collabora falls
+  # back to `mode="first"` (trusts whichever host connects FIRST). Declared
+  # here it becomes the `aliasgroup1` environment variable, which coolwsd
+  # reads via --use-env-vars: only webmail.tsiru.pet may be the WOPI host.
+  services.collabora-online.aliasGroups = [
+    {
+      host = "https://webmail.${domain}:443";
+      aliases = [ ];
+    }
+  ];
 }
