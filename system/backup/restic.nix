@@ -50,7 +50,7 @@
     };
   };
 
-  systemd.restic-kuma-success = {
+  systemd.services.restic-kuma-success = {
     description = "Report successful Restic backup to Uptime Kuma";
 
     serviceConfig = {
@@ -74,7 +74,7 @@
     '';
   };
 
-  systemd.restic-kuma-failure = {
+  systemd.services.restic-kuma-failure = {
     description = "Report failed Restic backup to Uptime Kuma";
 
     serviceConfig = {
