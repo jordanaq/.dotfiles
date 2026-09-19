@@ -28,12 +28,21 @@ in {
       default_phone_region = "US";
     };
 
+    maxUploadSize = "256M";
+
+    # phpfpm pool — aggressive memory floor for a single-user instance:
+    #  - "ondemand" spawns a PHP worker only on request (no warm spares at idle)
+    #  - max_requests recycles workers so they shed memory instead of leaking it
+    #  - idle children are reaped after 10s
     poolSettings = {
-      "pm.max_children"     = "8";
-      "pm.start_servers"    = "2";
-      "pm.min_spare_servers" = "1";
-      "pm.max_spare_servers" = "3";
+      "pm"                   = "ondemand";
+      "pm.max_children"      = "6";
+      "pm.max_requests"      = "500";
+      "pm.process_idle_timeout" = "10s";
     };
+
+    # Shared opcode/APCu cache capped to 64M (few apps; plenty).
+    phpOptions."opcache.memory_consumption" = "64";
 
 
     configureRedis = false;
