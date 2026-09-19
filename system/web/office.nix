@@ -36,18 +36,6 @@
       admin_console.enable = false;
 
     };
-
-    # Memory cap + WOPI security.
-    #  - num_workers=1 limits concurrent document sessions — the single biggest
-    #    Collabora RAM lever, and this box is 2 GB.
-    #  - storage.wopi.allow restricts which origin may *initiate* WOPI — here the
-    #    Bulwark WOPI host at webmail.<domain>. Deliberately in the documented
-    #    `--o:` CLI form rather than the freeform `settings`, because allow is a
-    #    list-valued option and the module's XML-attribute merge (`@allow`) does
-    #    not serialize arrays cleanly.
-    extraArgs = [
-      "--o:num_workers=1"
-    ];
     
     aliasGroups = [
       {
