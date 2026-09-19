@@ -16,7 +16,7 @@ in {
     description = "Back up Stalwart data";
 
     after = [ "stalwart.service" ];
-    requries = [ "stalwart.service" ];
+    requires = [ "stalwart.service" ];
 
     serviceConfig = {
       Type = "oneshot";
