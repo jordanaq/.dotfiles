@@ -32,7 +32,7 @@
       server_name = "office.${domain}";
 
       num_prespawn_children = 1;
-      memproportion = 70.0;
+      memproportion = 40.0;
       admin_console.enable = false;
 
     };
