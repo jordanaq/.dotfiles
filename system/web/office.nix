@@ -46,6 +46,18 @@ in
     ];
   };
 
+  # Prewarm LanguageTool so the FIRST real /v2/check (which cold-starts the NLP
+  # models, ~12 s on this 2 GB box) happens at service start, not on the user's
+  # first editor keystroke — the editor's HTTP timeout otherwise fails that cold
+  # call with 'Timeout was reached'. Best-effort (`|| true`): a warmup hiccup
+  # must not fail the unit.
+  systemd.services.languagetool.serviceConfig.ExecStartPost = ''
+    ${lib.getExe pkgs.curl} -fsS -m 60 -X POST \
+      "http://127.0.0.1:${toString languagetoolPort}/v2/check" \
+      -d 'language=en&text=A prewarm sentence to load the models.' \
+      > /tmp/languagetool-prewarm.log 2>&1 || true
+  '';
+
   # ---------------------------------------------
   # Collabora CODE 26.04
   # ---------------------------------------------
