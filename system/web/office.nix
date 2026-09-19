@@ -11,12 +11,11 @@
 # owns 127.0.0.1:8081, so LanguageTool uses :8091).
 #
 # AI provider defaults to Nous Portal / DeepSeek V4 Flash Latest. The API key is
-# intentionally NOT stored here: it is supplied per-user via the WOPI
-# `UserPrivateInfo` field in Bulwark's CheckFileInfo (the old "enter it in
-# Collabora → AI settings" flow is impossible here — Bulwark doesn't implement
-# the settings-iframe surface, so the Options gear is hidden). Put the key in
-# /etc/secrets/bulwark.env as COLLABORA_AI_PRIVATE_INFO (see system/mail/bulwark.nix
-# postInstall + README) so it never enters the nix store or process argv.
+# intentionally NOT stored here (or in git / the nix store): the coolwsd unit
+# reads it at runtime from /etc/secrets/coolwsd.env as COLLABORA_AI_API_KEY
+# (systemd EnvironmentFile → ${...} expansion in ExecStart). This replaces the
+# earlier WOPI-UserPrivateInfo injection, which required patching Bulwark's
+# prebuilt turbopack chunk (fragile — reverted 2026-09-19).
 {
   config,
   lib,
@@ -77,6 +76,10 @@ in
     };
 
     serviceConfig = {
+      # AI API key lives ONLY here (0600), never git/nix-store. Feed it to the
+      # --o:ai.api_key arg below via ${} expansion.
+      EnvironmentFile = [ "/etc/secrets/coolwsd.env" ];
+
       User = "cool";
       Group = "cool";
 
@@ -128,7 +131,10 @@ in
         "--o:ai.allow_user_settings=true"
         "--o:ai.api_url=https://inference-api.nousresearch.com"
         "--o:ai.model=~deepseek/deepseek-v4-flash-latest"
-        # ai.api_key deliberately unset — see header comment.
+        # Key from /etc/secrets/coolwsd.env via systemd EnvironmentFile (${}
+        # expansion happens in systemd before shell/exec, so it stays out of the
+        # nix store AND out of git). File: COLLABORA_AI_API_KEY=<sk-...>
+        "--o:ai.api_key=\${COLLABORA_AI_API_KEY}"
 
         # Single-user server tuning.
         "--o:num_prespawn_children=1"

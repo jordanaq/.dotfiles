@@ -99,6 +99,7 @@ in {
   systemd.tmpfiles.rules = [
     "z /etc/secrets/bulwark.env 0600 root root"
     "z /etc/secrets/caddy.env 0600 root root"
+    "z /etc/secrets/coolwsd.env 0600 root root"
     "z /etc/secrets/scaleway.smtp-password 0600 root root"
     "z /etc/secrets/scaleway.smtp-user 0600 root root"
     "z /etc/secrets/searxng.env 0600 root root"
