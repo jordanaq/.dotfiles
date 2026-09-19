@@ -4,8 +4,6 @@
   programs.neovim = let
     toLua = str: "\n${str}\n";
     toLuaFile = file: "\n${builtins.readFile file}\n";
-    # toLua = str: "lua << EOF\n${str}\nEOF\n";
-    # toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
   in {
     enable = true;
 
@@ -139,14 +137,6 @@
 
       {
         plugin = nvim-treesitter.withAllGrammars;
-          #(nvim-treesitter.withPlugins (p: [
-          #  p.tree-sitter-nix
-          #  p.tree-sitter-vim
-          #  p.tree-sitter-bash
-          #  p.tree-sitter-lua
-          #  p.tree-sitter-python
-          #  p.tree-sitter-json
-          #]));
         type = "lua";
         config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
       }

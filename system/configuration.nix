@@ -1,16 +1,9 @@
-# tsiru-cloud — lean server base configuration
-# Server-only branch of ~/.dotfiles.
-# Services: SearXNG, Calibre (calibre-web + content server), LinkStack, the
-# public personal site, the vault notes site, Stalwart + Bulwark (mail), and
-# Vaultwarden — all behind Caddy — plus Tailscale, Uptime Kuma, fail2ban, and
-# SSH. See the per-service modules in this directory and the README.
-#
-# Linode/LISH boot + networking settings below are taken from nixpkgs'
-# maintained profile `nixos/modules/virtualisation/linode-config.nix`
-# (the current equivalent of the old "Install NixOS on Linode" guide).
-# We hand-pick them instead of importing that module because it also defines
-# `fileSystems."/"` and `boot.kernelParams`, which would CONFLICT with this
-# repo's own `hardware-configuration.nix` and the nixpkgs defaults.
+# tsiru-cloud — lean server base configuration (server-only branch).
+# Services live in ./web, ./mail, ./monitoring, ./security, ./networking; see README.
+
+# Linode/LISH boot + networking params taken from nixpkgs' linode-config.nix but
+# hand-picked — importing that module would conflict (it defines fileSystems."/"
+# and boot.kernelParams).
 
 { config, lib, pkgs, domain, ... }:
 
@@ -28,28 +21,25 @@ in {
   ];
 
   # --- Boot ---------------------------------------------------------------
-  # ⚠️ VERIFY against the Linode before `nixos-rebuild switch`: compare with the
-  # box's current /etc/nixos/configuration.nix. Linode boots via its OWN host
-  # "GRUB 2" kernel, which reads the GRUB menu from disk — so the system must
-  # use GRUB, NOT systemd-boot.
+  # ⚠️ VERIFY against the Linode's current /etc/nixos/configuration.nix before
+  # `nixos-rebuild switch`. Linode boots via its own host "GRUB 2" kernel reading
+  # GRUB from disk — so the system MUST use GRUB, NOT systemd-boot.
   boot = {
-    # The initrd virtio/disk modules (virtio_pci, virtio_scsi, ahci, sd_mod)
-    # come from the generated system/hardware-configuration.nix — not duplicated
-    # here. virtio_net is NOT in that file, so it stays.
+    # virtio_pci/scsi, ahci, sd_mod come from hardware-configuration.nix; only
+    # virtio_net (absent there) is needed here.
     kernelModules = [ "virtio_net" ];
 
     # LISH (out-of-band serial console) — essential when SSH is unavailable.
     kernelParams = [ "console=ttyS0,19200n8" ];
 
     loader = {
-      # Give LISH time to connect; mkForce because the image generator may try
-      # to set 0.
+      # Time for LISH to connect; mkForce because the image generator may set 0.
       timeout = lib.mkForce 10;
 
       grub = {
         enable = true;
-        # Linode disks are partitionless; force past GRUB's blocklist warning.
-        # GRUB runs from the host, so nothing is actually installed to disk.
+        # Partitionless Linode disks: force past GRUB's blocklist warning; GRUB
+        # runs from the host, so nothing is actually installed to disk.
         forceInstall = true;
         device = "nodev";
         # Serial terminal so GRUB itself is usable over LISH.
@@ -70,8 +60,7 @@ in {
     domain = domain;
     nameservers = [ "9.9.9.9" "149.112.112.112" ];
 
-    # Linode networking conventions (single eth0, DHCP). Matches Linode's own
-    # images so their docs/support tooling behave as expected.
+    # Matches Linode image defaults (single eth0, DHCP).
     usePredictableInterfaceNames = false;
     useDHCP = false;
     interfaces.eth0 = {
@@ -80,23 +69,17 @@ in {
       tempAddress = "disabled";
     };
 
-    # Default deny. Public traffic is only Caddy's web ports plus the mail
-    # ports Stalwart listens on. TCP only — mail uses no UDP, and ICMP/ping is
-    # governed separately (allowPing, default true).
-    #   22   → SSH (TAILNET-ONLY: closed to the public internet — pentest 2026-09-15.
-    #          Works over Tailscale via trustedInterfaces=[tailscale0] below; use
-    #          Linode LISH out-of-band if the tailnet is ever down.)
+    # Default deny. TCP only — no UDP; ICMP governed by allowPing (default true).
+    #   22   → SSH (TAILNET-ONLY, closed to the public internet — pentest 2026-09-15;
+    #          reachable via trustedInterfaces=[tailscale0]; use Linode LISH if down)
     #   80   → ACME HTTP-01 challenge (Caddy)
     #   443  → HTTPS (Caddy-terminated TLS: web, webmail, admin, JMAP/CalDAV)
-    #   25   → SMTP (inbound mail from other servers)
+    #   25   → SMTP (inbound mail)
     #   465  → SMTP submission (implicit TLS)
     #   587  → SMTP submission (STARTTLS)
     #   993  → IMAPS (implicit TLS)
-    # NOT opened: 4190 (ManageSieve key management). Pentest F-11: Linode
-    #   filters the port upstream, so no internet client could reach it, and
-    #   nothing here speaks ManageSieve (Sieve is managed over JMAP). Opening it
-    #   only advertised a service that did not exist — see the listener note in
-    #   system/mail/stalwart/default.nix.
+    # NOT opened: 4190 (ManageSieve). Pentest F-11: Linode filters it upstream and
+    #   nothing serves it (Sieve is managed over JMAP) — see system/mail/stalwart/default.nix.
     firewall = {
       enable = true;
       allowedTCPPorts = lib.mkForce [ 80 443 25 465 587 993 ];  # mkForce: exact public allowlist; CLOSES :22 (default [22 80 443] would otherwise leak a public SSH). SSH stays reachable over Tailscale via trustedInterfaces=[tailscale0].
@@ -104,18 +87,12 @@ in {
   };
 
   # --- Secret file modes (self-healing) ---
-  # /etc/secrets/* are created by hand (see "Files to create" in the README), so
-  # nothing in Nix owns their permissions. On 2026-09-13 they had drifted to 0644 —
-  # leaving the Spaceship API key (i.e. full DNS control) readable by *every*
-  # local service user: linkstack's php-fpm, bulwark, vaultwarden, searxng. A
-  # DNS takeover is not a dead end either: it can point a vhost elsewhere or
-  # satisfy a Let's Encrypt DNS-01 challenge, which CAA does not prevent.
-  #
-  # `z` re-applies mode/owner on every boot and silently skips files that do not
-  # exist yet, so this is safe on a fresh box. Modes match what each consumer
-  # actually needs: root-only for the ones the service manager reads as root
-  # (systemd `EnvironmentFile`/lego), root:stalwart for the ones Stalwart reads
-  # itself at runtime.
+  # /etc/secrets/* are created by hand (README "Files to create"), so Nix owns no
+  # permissions. On 2026-09-13 they drifted to 0644, leaking the Spaceship API key
+  # (full DNS control) to every local service user. `z` re-applies mode/owner on
+  # every boot and silently skips missing files (safe on fresh box). root-only =
+  # read by the service manager (systemd EnvironmentFile, lego); root:stalwart =
+  # read by Stalwart itself at runtime.
   systemd.tmpfiles.rules = [
     "z /etc/secrets/bulwark.env 0600 root root"
     "z /etc/secrets/caddy.env 0600 root root"
@@ -179,6 +156,6 @@ in {
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
-  # NOTE: the prebuilt-Stalwart overlay is declared inside
-  # system/mail/stalwart/default.nix, beside the package it defines.
+  # Prebuilt-Stalwart overlay is declared in system/mail/stalwart/default.nix,
+  # beside the package it defines.
 }

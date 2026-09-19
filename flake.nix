@@ -9,19 +9,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # The public personal site (Zola source + build) served at the apex
-    # domain. github.com/jordanaq/tsiru-pet — public, so the box can fetch it
-    # over HTTPS with no credentials. Its own package output is the built
-    # static site; system/web/caddy.nix serves it.
+    # Public personal site (Zola). Repo is public, so the box can fetch it over
+    # HTTPS with no credentials; its package output is the built site (served by caddy).
     tsiru-pet = {
       url = "git+https://github.com/jordanaq/tsiru-pet?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Quartz v5 — the static-site generator behind notes.<domain>. Pinned by
-    # flake.lock (not `?ref=main`) so a rebuild is reproducible and an upstream
-    # release can never silently change the published site. `flake = false`:
-    # it is used as a source tree, not as a flake.
+    # Quartz v5, the notes.<domain> static-site generator. Pinned by flake.lock
+    # (not ?ref=main) for reproducibility; flake = false (used as a source tree).
     quartz = {
       url = "github:jackyzha0/quartz";
       flake = false;

@@ -1,5 +1,5 @@
-# SearXNG — loopback-only, fronted by Caddy (system/web/caddy.nix).
-# Self-contained: no Firecrawl, no Docker, nothing reaches it but Caddy.
+# SearXNG — loopback-only, fronted by Caddy (system/web/caddy.nix). Self-contained:
+# no Firecrawl, no Docker; nothing reaches it but Caddy. Secrets from environmentFile.
 { domain, pkgs, ... }:
 
 {
@@ -8,8 +8,7 @@
     package = pkgs.searxng;
     redisCreateLocally = true;
 
-    # Caddy proxies from the same host; nothing else needs to reach it.
-    # Bind loopback and do NOT open the port to the world.
+    # Caddy proxies from the same host — bind loopback, open no port.
     openFirewall = false;
 
     environmentFile = "/etc/secrets/searxng.env";

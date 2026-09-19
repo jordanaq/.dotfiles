@@ -13,7 +13,6 @@
     homeDirectory = "/home/tsiru";
     stateVersion = "26.05"; # Read home manager release notes before changing.
 
-    # Packages
     packages = with pkgs; [
       eza
       sqlite
@@ -24,6 +23,5 @@
     };
   };
 
-  # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 }

@@ -1,21 +1,18 @@
 # Bulwark — self-hosted JMAP webmail client for Stalwart, served at
 # webmail.<domain>.
 #
-# Bulwark is NOT in nixpkgs, so this file packages it itself. Unlike LinkStack,
-# Bulwark publishes a PREBUILT standalone bundle (server.js + .next/ + vendored
-# node_modules), so there is no npm/composer build step — we fetch the release
-# tarball, drop it on disk and run it with Node. No PHP, no database.
+# Not in nixpkgs; we package it here. Bulwark ships a PREBUILT standalone
+# bundle (server.js + .next/ + vendored node_modules): fetch the release
+# tarball, drop it in the store, run with Node. No build step, PHP, or DB.
 #
-# STATE MODEL (mirrors the LinkStack pattern): the app tree is copied out of the
-# read-only store into /var/lib/bulwark/app on every activation, and the sync
-# uses --delete because ALL mutable state lives OUTSIDE the app tree, in the
-# ADMIN_CONFIG_DIR / ADMIN_STATE_DIR dirs declared below (that is the documented
-# split — the wizard writes operator config to ADMIN_CONFIG_DIR). So a version
-# bump fully replaces the code without touching state, and stale .next chunks
-# from an old release can never survive.
+# STATE MODEL (mirrors LinkStack): the app tree is rsync'd --delete out of the
+# read-only store into /var/lib/bulwark/app on every activation, because ALL
+# mutable state lives outside it, in ADMIN_CONFIG_DIR / ADMIN_STATE_DIR (the
+# wizard writes operator config to ADMIN_CONFIG_DIR). So a version bump fully
+# replaces code without touching state, and stale .next chunks can't survive.
 #
-# PROVIDER: Bulwark always talks JMAP to Stalwart (there is no IMAP mode). We
-# point it at the public HTTPS JMAP endpoint, which Caddy fronts.
+# PROVIDER: Bulwark only speaks JMAP to Stalwart (no IMAP mode); we point it
+# at the public HTTPS JMAP endpoint, fronted by Caddy.
 { config, lib, pkgs, domain, ... }:
 
 let
@@ -78,10 +75,10 @@ in
     };
 
     script = ''      set -euo pipefail
-      # --delete: the app tree is fully replaced; state lives outside it.
-      # -rlp + --no-owner/--no-group: this unit is unprivileged and cannot set
-      # ownership from the root-owned store tree.
-      # --chmod: store dirs are 0555, so without it rsync cannot create children.
+      # --delete: app tree fully replaced; state lives outside it.
+      # -rlp + --no-owner/--no-group: unprivileged unit can't set ownership
+      # from root-owned store tree.
+      # --chmod: store dirs are 0555; without it rsync can't create children.
       ${pkgs.rsync}/bin/rsync -rlp --delete --no-owner --no-group \
         --chmod=D755,F644 \
         ${bulwark}/ ${appDir}/
@@ -139,14 +136,13 @@ in
   };
   users.groups.${group} = { };
 
-  # --- Caddy vhost is declared in system/web/caddy.nix (kept with the others) ---
-  # It reverse-proxies https://${vhost} -> 127.0.0.1:${port}.
+  # --- Caddy vhost declared in system/web/caddy.nix (kept with the others) ---
+  # Reverse-proxies https://${vhost} -> 127.0.0.1:${port}.
   #
-  # Deployment checklist:
-  #   1. DNS: A record ${vhost} -> <LINODE_IP> (Caddy gets the cert via HTTP-01).
-  #   2. Create /etc/secrets/bulwark.env (0600) with:
-  #        SESSION_SECRET=<64+ random chars>
-  #      before the first switch, or the unit fails to start.
-  #   3. First login uses the mail account (tsiru@${domain}) — accounts live in
-  #      Stalwart, not here; Bulwark has no separate user database.
+  # Deploy checklist:
+  #   1. DNS: A record ${vhost} -> <LINODE_IP> (cert via Caddy HTTP-01).
+  #   2. Create /etc/secrets/bulwark.env (0600): SESSION_SECRET=<64+ random
+  #      chars>, before the first switch or the unit fails to start.
+  #   3. First login uses the mail account (tsiru@${domain}) — accounts live
+  #      in Stalwart, not here.
 }

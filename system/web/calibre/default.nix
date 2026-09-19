@@ -1,32 +1,20 @@
-# Calibre library hosting.
+# Calibre library hosting. /srv/calibre is the MASTER copy (219 books, ~15 GB) —
+# deliberately NO second copy (backup out of scope; server disk is the only source).
 #
-# The library at /srv/calibre is the MASTER copy of Tsiru's Calibre library
-# (219 books, ~15 GB). There is deliberately NO second copy — backup is out of
-# scope by explicit choice, so treat the server disk as the only source.
+# Two writable frontends serve the one library: calibre-web -> 127.0.0.1:8083
+# (library.<domain>) and calibre-server -> 127.0.0.1:8081 (calibre.<domain>).
+# Calibre supports only ONE writer: writing from calibredb AND the browser at the same
+# instant yields a transient "database is locked" — retryable on local disk, not
+# corruption. Don't write from both at once.
 #
-# Two frontends serve the one library:
-#   * calibre-web      -> 127.0.0.1:8083   (library.<domain>, via Caddy)
-#   * calibre-server   -> 127.0.0.1:8081   (calibre.<domain>, via Caddy)
-#
-# BOTH ARE WRITABLE (calibre-web: upload/edit from the browser; calibre-server:
-# `calibredb` add/edit + OPDS). Calibre officially supports only ONE writer, so
-# writing from calibredb AND the browser at the same instant can yield a
-# transient "database is locked". On a LOCAL disk that is retry-able, NOT
-# corruption (corruption is a network-filesystem pathology, and the library is
-# on the box's own disk). Discipline: don't write from both at once.
-#
-# ⚠️ ORDERING: the library directory must EXIST and contain metadata.db BEFORE
-# the first `nixos-rebuild switch` — calibre-web's ExecStartPre runs
-# `test -f /srv/calibre/metadata.db` and hard-fails the unit otherwise.
-#
-# ⚠️ ONE-TIME, on the box: `auth.userDb` is NOT auto-created, so calibre-server
-# will not start until the users DB is initialised (see the plan / deploy notes).
+# ⚠️ ORDERING: /srv/calibre must EXIST with metadata.db before the first
+# nixos-rebuild switch (calibre-web's ExecStartPre `test -f` hard-fails the unit).
+# ⚠️ ONE-TIME on box: auth.userDb is not auto-created; init the users DB first.
 { pkgs, ... }:
 
 {
-  # Both service users must read/write the one shared library. The calibre-web
-  # and calibre-server modules each auto-create ONLY their own default group, so
-  # we define a shared `calibre` group and point both services at it.
+  # Both service users share the one library; each module auto-creates only its own
+  # default group, so define a shared `calibre` group and point both services at it.
   users.groups.calibre = { };
 
   services.calibre-web.group = "calibre";
@@ -55,11 +43,9 @@
   services.calibre-web = {
     enable = true;
 
-    # Catppuccin Macchiato re-skin of the dark theme. calibre-web has no theme
-    # plugin system, so we rewrite caliBlur's colour palette inside the package
-    # at build time and append the hand-written fixups to the override file it
-    # already loads last. Activate with Theme = "caliBlur! Dark Theme" in the
-    # calibre-web admin UI (that sets config_theme = 1).
+    # Catppuccin Macchiato re-skin: no theme plugin system, so rewrite caliBlur's
+    # palette at build time + append fixups to the override file it loads last.
+    # Activate with Theme = "caliBlur! Dark Theme" in the admin UI (config_theme = 1).
     package = pkgs.calibre-web.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
         ${pkgs.python3}/bin/python3 ${./catppuccin-macchiato.py} css \

@@ -1,19 +1,15 @@
-# Stalwart 0.16 + its management CLI, fetched as PREBUILT binaries from the
-# official GitHub release tarballs (no cargo build).
+# Stalwart 0.16 + management CLI, prebuilt from GitHub release tarballs (no cargo build).
 #
-# WHY: nixpkgs still pins stalwart 0.15.5 (2026-09); the 0.16 line is a full
-# management-layer redesign (JSON config, JMAP-object provisioning, new CLI
-# from the separate stalwartlabs/cli repo). These packages track upstream
-# releases directly. DROP THIS OVERLAY once nixpkgs ships stalwart >= 0.16.
+# Vendored: nixpkgs still pins stalwart <0.16 (full 0.16 management redesign).
+# DROP OVERLAY once nixpkgs ships stalwart >= 0.16.
 #
-# Hashes: `nix store prefetch-file <url>` after bumping version.
+# Bump hashes via: `nix store prefetch-file <url>`.
 final: prev: {
   stalwart = final.stdenv.mkDerivation (finalAttrs: {
     pname = "stalwart";
     version = "0.16.21";
 
-    # Single `stalwart` binary in the tarball (webadmin + spam filter are
-    # embedded since 0.16).
+    # Single `stalwart` binary; webadmin/spam filter embedded since 0.16.
     src = final.fetchurl {
       url = "https://github.com/stalwartlabs/stalwart/releases/download/v${finalAttrs.version}/stalwart-x86_64-unknown-linux-gnu.tar.gz";
       sha256 = "eb02fb00b2aa320a3ec1fa32560689ad7141033711931b0b0165e4b7145d0003";
@@ -21,8 +17,7 @@ final: prev: {
 
     nativeBuildInputs = [ final.autoPatchelfHook ];
 
-    # The release tarball holds a single bare `stalwart` binary (no directory),
-    # which trips the unpacker's "no directories" check.
+    # Tarball holds one bare binary; trips the unpacker's "no directories" check.
     dontUnpack = true;
 
     installPhase = ''
@@ -32,10 +27,8 @@ final: prev: {
       runHook postInstall
     '';
 
-    # The stalwart-provision unit (system/mail/stalwart/module/provision.nix) reads
-    # the apply-plan schema from package.src, so expose the SOURCE here
-    # (it carries resources/schema/schema.json.gz). fetchzip: unpacked, with
-    # the wrapper dir stripped — the nixpkgs stalwart package does the same.
+    # stalwart-provision (module/provision.nix) reads the apply-plan schema from
+    # package.src; expose the source (carries resources/schema/schema.json.gz).
     passthru.src = final.fetchzip {
       url = "https://github.com/stalwartlabs/stalwart/archive/refs/tags/v${finalAttrs.version}.tar.gz";
       sha256 = "sha256-EZ7cuHToVzs/pubGtvXRzgHjmJ8DV7OrIuXnlmQyy1s=";

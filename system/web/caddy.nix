@@ -1,59 +1,30 @@
-# Caddy — auto-TLS reverse proxy in front of SearXNG, the Calibre services,
-# LinkStack, and the public personal site at the apex domain.
+# Caddy — auto-TLS reverse proxy in front of SearXNG, Calibre, LinkStack, the
+# public site, and the mail/office/webmail/vault vhosts.
 #
-# Caddy obtains and renews a Let's Encrypt certificate for
-# search.<domain> automatically (HTTP-01 challenge on :80) and enforces
-# basic-auth, then proxies to the loopback SearXNG instance.
-#
-# The basic-auth credential is deliberately NOT stored here — this repo is
-# PUBLIC. It lives on the server in /etc/secrets/caddy.env as
-# `CADDY_AUTH_HASH=<bcrypt hash>`, wired in via services.caddy.environmentFile
-# and referenced below as {$CADDY_AUTH_HASH}. Caddy substitutes {$VAR} from its
-# process environment when it adapts the Caddyfile at startup, so the hash never
-# enters the nix store or git. (Note `{$…}`, not `{env.…}`.)
-#
-# Before deploying:
-#   1. DNS: A record  search.<domain> -> <LINODE_IP>  (DNS-only / grey cloud,
-#      so the ACME HTTP-01 challenge reaches this box directly).
-#   2. Create the secrets file on the server (0600):
-#        nix run nixpkgs#caddy -- hash-password --plaintext '<password>'
-#        sudo install -m 600 /dev/null /etc/secrets/caddy.env
-#        printf 'CADDY_AUTH_HASH=%s\n' '<that $2a$14$… hash>' | sudo tee /etc/secrets/caddy.env
-#      It MUST exist before `nixos-rebuild switch`: systemd's EnvironmentFile is
-#      not optional here, and Caddy refuses to start without it
-#      ("username and password cannot be empty or missing").
-#   3. Change the password later with: edit /etc/secrets/caddy.env -> restart caddy.
+# The basic-auth credential is NOT stored here (this repo is PUBLIC). It lives on
+# the server in /etc/secrets/caddy.env as CADDY_AUTH_HASH, wired via
+# services.caddy.environmentFile and referenced below as {$CADDY_AUTH_HASH} —
+# Caddy substitutes {$VAR} from its environment, so the hash never enters the
+# nix store or git. (Note `{$…}`, not `{env.…}`.)
+# Before deploying: point A record search.<domain> at the Linode (DNS-only, so
+# the ACME HTTP-01 challenge reaches the box directly), then create the secrets
+# file BEFORE `nixos-rebuild switch` (systemd EnvironmentFile is not optional;
+# Caddy refuses to start without the hash):
+#   nix run nixpkgs#caddy -- hash-password --plaintext '<password>'
+#   sudo install -m 600 /dev/null /etc/secrets/caddy.env
+#   printf 'CADDY_AUTH_HASH=%s\n' '<$2a$14$… hash>' | sudo tee /etc/secrets/caddy.env
 { config, lib, domain, inputs, ... }:
 
 let
-  # Response headers applied to EVERY vhost below (see the mapAttrs at
-  # `virtualHosts`). HSTS is pentest F-03: only library. carried it, and that
-  # came from calibre-web rather than the proxy — so the password manager,
-  # webmail and the mail admin all went without.
-  #
-  # THREE Caddy subtleties, all verified live against this box:
-  #
-  #   1. A plain `header Field value` set runs BEFORE the upstream writes its
-  #      headers, so calibre-web's own HSTS on library. survived alongside ours
-  #      (two STS fields). RFC 6797 has a UA process only the FIRST, so the
-  #      policy was left to ordering luck.
-  #   2. Adding `-Field` to fix that defers the WHOLE block (documented: a `-`
-  #      op defers the handler), and the deferred delete then ran after our own
-  #      set — every vhost lost HSTS entirely.
-  #   3. `>Field value` (set-with-defer) fixes the upstream case but does NOT
-  #      reach a response Caddy itself short-circuits: search.'s 401 from
-  #      `basic_auth` came back with no HSTS at all.
-  #
-  # Hence BOTH ops, as two separate directives (a block would share deferral):
-  # the immediate set covers Caddy-generated responses (basic_auth 401s,
-  # file_server), and the deferred set runs after the proxy writes its headers
-  # to overwrite an upstream's own. Verified end state: exactly one STS field
-  # on every vhost, including search.'s 401.
-  #
-  # includeSubDomains is safe here: every name with an A record serves HTTPS,
-  # the one exception (status.<domain>) is stale, pending deletion, and serves
-  # no HTTPS at all. Deliberately NO `preload` — that is a one-way door and
-  # needs submission to the preload list.
+  # HSTS on EVERY vhost. Pentest F-03: only library. carried it (from calibre-web,
+  # not the proxy), so the password manager / webmail / mail admin went without.
+  # Needs BOTH ops, as separate directives (a block would share deferral):
+  # the immediate `header Field value` runs before the upstream writes its own
+  # headers (covers Caddy short-circuits like search.'s 401), and `>Field`
+  # (set-with-defer) overwrites an upstream's HSTS after the proxy writes.
+  # Verified: exactly one STS field on every vhost. includeSubDomains is safe —
+  # the only A-record name without HTTPS (status.<domain>) is stale and pending
+  # deletion. Deliberately NO `preload` (one-way door).
   hstsValue = "max-age=31536000; includeSubDomains";
   hsts = ''
     header Strict-Transport-Security "${hstsValue}"
@@ -64,12 +35,11 @@ in
   services.caddy = {
     enable = true;
 
-    # Supplies CADDY_AUTH_HASH to Caddy's process environment (systemd
-    # EnvironmentFile, read as root before dropping to the caddy user).
+    # Supplies CADDY_AUTH_HASH to Caddy's process environment.
     environmentFile = "/etc/secrets/caddy.env";
 
-    # mapAttrs rather than a per-vhost line so the header is defined once, can
-    # never be forgotten on a new vhost, and cannot drift between them.
+    # mapAttrs so the header is defined once and can't be forgotten on a new
+    # vhost or drift between them.
     virtualHosts = lib.mapAttrs (name: vh: vh // {
       extraConfig = ''
         ${hsts}
@@ -83,12 +53,9 @@ in
         reverse_proxy 127.0.0.1:8888
       '';
 
-      # calibre-web — browser UI for the Calibre library. calibre-web's OWN
-      # login is the gate (deliberately NO Caddy basicauth here: a second gate
-      # would break OPDS / reader-app access).
-      # Access logging is automatic (the module's `logFormat` default writes
-      # /var/log/caddy/access-<host>.log); we add rolling so it can't grow
-      # unbounded. fail2ban reads these files.
+      # calibre-web — browser UI for the Calibre library. Its OWN login is the
+      # gate (a second basic_auth would break OPDS / reader-app access). Rolling
+      # access log; fail2ban reads these files.
       "library.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-library.${domain}.log {
@@ -101,8 +68,7 @@ in
         '';
       };
 
-      # Calibre content server — remote `calibredb` + OPDS. calibre-server's
-      # OWN auth is the gate.
+      # Calibre content server — remote calibredb + OPDS. calibre-server's own auth.
       "calibre.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-calibre.${domain}.log {
@@ -111,11 +77,9 @@ in
           }
         '';
         extraConfig = ''
-          # TRACE is never needed by a client here and is a classic cross-site
-          # tracing / XST vector (and it makes the vhost an easy fingerprint).
-          # Caddy would otherwise forward it to calibre-server, which answered
-          # 200 (pentest F-07). Named matcher + respond: `respond` is ordered
-          # before `reverse_proxy`, so this wins.
+          # Block TRACE: cross-site tracing / XST vector + fingerprint (pentest
+          # F-07; calibre-server answered 200). `respond` is ordered before
+          # reverse_proxy, so this wins.
           @trace method TRACE
           respond @trace 405
 
@@ -123,12 +87,9 @@ in
         '';
       };
 
-      # tsiru.pet — the public personal site (bio + projects), built from the
-      # `tsiru-pet` flake input (github.com/jordanaq/tsiru-pet) at nix build
-      # time by Zola. Served straight out of the read-only store path: no
-      # service, no PHP, no DB, zero runtime RAM.
-      #
-      # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
+      # tsiru.pet — the public personal site, built by Zola at nix build time
+      # from the tsiru-pet flake input and served from the store path: no
+      # service/DB, zero runtime RAM. Deliberately PUBLIC.
       "${domain}" = {
         extraConfig = ''
           root * ${inputs.tsiru-pet.packages.${config.nixpkgs.hostPlatform.system}.default}
@@ -136,11 +97,9 @@ in
         '';
       };
 
-      # notes.<domain> — public Quartz export of the vault's Concepts/ folder.
-      # Built and published on THIS box (see system/web/notes-site): a timer
-      # pulls the vault's bare remote, rebuilds, and rsyncs into the docroot.
-      # Static files only: no service, no PHP, no DB, zero runtime RAM.
-      # Deliberately PUBLIC.
+      # notes.<domain> — public Quartz export of the vault's Concepts/, built on
+      # this box (see system/web/notes-site) and served from /var/lib/notes-site.
+      # Static only, zero runtime RAM. Deliberately PUBLIC.
       "notes.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-notes.${domain}.log {
@@ -151,15 +110,14 @@ in
         extraConfig = ''
           root * /var/lib/notes-site
 
-          # Quartz links are EXTENSIONLESS (e.g. /computing/data-storage/mapreduce)
-          # while the files on disk are <name>.html. Plain file_server 404s those,
-          # so resolve path -> path.html -> path/index.html before serving.
-          # Without this every internal link in the site is broken.
+          # Quartz links are extensionless (/computing/.../mapreduce) while the
+          # files are <name>.html — resolve before serving or every internal link
+          # 404s.
           try_files {path} {path}.html {path}/index.html
 
           file_server
 
-          # Use the site's own 404 page instead of Caddy's bare one.
+          # Use the site's own 404 page.
           handle_errors {
             rewrite * /404.html
             file_server
@@ -167,24 +125,17 @@ in
         '';
       };
 
-      # linkstack — link-in-bio page (see system/web/linkstack.nix).
-      #
-      # Deliberately PUBLIC: no `basic_auth` here (unlike search.${domain}).
-      # Anyone can read the page; LinkStack's own admin login — created by the
-      # first-run installer — gates *editing* only, never viewing.
-      #
-      # ⚠️ Unlike the other vhosts, LinkStack's docroot is the APP ROOT, not a
-      # `public/` subdir — that is how upstream ships it (shared-hosting layout),
-      # and `.htaccess` is what normally hides `.env`, the SQLite DB and the
-      # release archives. Caddy ignores `.htaccess`, so those denials are
-      # re-stated here. KEEP THIS IN SYNC with the `.htaccess` in the release.
+      # linkstack — link-in-bio page (see system/web/linkstack.nix). PUBLIC:
+      # LinkStack's own admin login gates editing only. Docroot is the APP ROOT
+      # (upstream shared-hosting layout) and `.htaccess` is what normally hides
+      # .env/DB/archives — Caddy ignores `.htaccess`, so those denials are
+      # re-stated here. KEEP IN SYNC with the release's `.htaccess`.
       "links.${domain}" = {
         extraConfig = ''
           root * /var/lib/linkstack
 
-          # Deny dotfiles (covers .env), the SQLite database, release archives,
-          # and the application source directories. Multiple `path` lines in
-          # one named matcher are OR-ed together.
+          # Deny dotfiles (.env), the SQLite DB, archives, and the app source.
+          # Multiple `path` lines in one matcher are OR-ed.
           @blocked {
             path /.* *.sqlite *.zip
             path /app/* /config/* /database/* /bootstrap/* /vendor/* /routes/*
@@ -199,27 +150,18 @@ in
         '';
       };
 
-      # mail.<domain> — the JMAP + CalDAV/CardDAV endpoint (and the Stalwart
-      # webadmin) served by Stalwart's loopback HTTP listener.
-      #
-      # Deliberately PUBLIC: Stalwart authenticates these requests itself, and
-      # CalDAV/CardDAV clients (phones, Thunderbird) plus Bulwark talk to this
-      # host directly. Putting basic_auth in front would break every non-browser
-      # client, exactly as it would break OPDS on the calibre vhost.
-      #
-      # TLS comes from security.acme (DNS-01 via Spaceship), NOT Caddy's own
-      # ACME — the same certificate Stalwart uses on the mail ports, so there is
-      # one cert for the name instead of two.
+      # mail.<domain> — JMAP + CalDAV/CardDAV + Stalwart webadmin. PUBLIC: Stalwart
+      # authenticates these itself; basic_auth would break non-browser clients.
+      # TLS is the security.acme DNS-01 cert (same one Stalwart uses), not Caddy's
+      # own ACME — one cert for the name.
       "mail.${domain}" = {
         extraConfig = ''
           tls /var/lib/acme/mail.${domain}/fullchain.pem /var/lib/acme/mail.${domain}/key.pem
 
-          # Bulwark (webmail.<domain>) is a DIFFERENT origin from this JMAP
-          # endpoint, so browsers preflight every call and refuse the response
-          # without Access-Control-Allow-Origin. Stalwart 0.15.5's
-          # server.http.permissive-cors does NOT emit those headers (verified
-          # live), so Caddy does it instead. Only Bulwark's origin is allowed;
-          # phones/Thunderbird (CalDAV/CardDAV) aren't browsers and ignore CORS.
+          # Bulwark is a different origin → browsers preflight every call and need
+          # Access-Control-Allow-Origin. Stalwart's permissive-cors does NOT emit
+          # these headers (verified live), so Caddy does. Phones/Thunderbird
+          # (CalDAV/CardDAV) aren't browsers and ignore CORS.
           @cors header Origin https://webmail.${domain}
           header @cors {
             Access-Control-Allow-Origin "https://webmail.${domain}"
@@ -234,20 +176,17 @@ in
           }
           respond @preflight 204
           reverse_proxy 127.0.0.1:8080 {
-            # Stalwart runs with Http.useXForwarded, so it takes the client IP
-            # from the `Forwarded` header (falling back to X-Forwarded-For) to
-            # attribute auth failures for auto-banning. SET it here rather than
-            # relying on the fallback: Caddy rewrites X-Forwarded-For itself and
-            # therefore cannot be spoofed, but it forwards a client-supplied
-            # `Forwarded` untouched — so without this line an attacker could pick
-            # the address they get banned as (or frame someone else's).
+            # Stalwart runs Http.useXForwarded and takes the client IP from
+            # `Forwarded` (falling back to X-Forwarded-For) for auto-banning. SET
+            # the true peer here: Caddy rewrites X-Forwarded-For itself, but
+            # forwards a client-supplied `Forwarded` untouched — without this an
+            # attacker picks the address they get banned as (or frames someone).
             header_up Forwarded "for={remote_host}"
           }
         '';
       };
 
-      # office.<domain> - Collabora. Caddy.
-      # caddy for gate and login
+      # office.<domain> — Collabora.
       "office.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-office.${domain}.log {
@@ -256,15 +195,15 @@ in
           }
         '';
         extraConfig = ''
-          # Collabora (net.listen=loopback) binds ::1 (IPv6 loopback) on this
-          # box — NOT 127.0.0.1 — so proxy to [::1] or the reverse_proxy is
-          # refused (was the office 502). Plaintext on loopback; TLS by Caddy.
+          # Collabora (net.listen=loopback) binds ::1 (IPv6 loopback), NOT
+          # 127.0.0.1 — proxy to [::1] or the reverse_proxy is refused (the
+          # office 502). Plaintext on loopback; TLS by Caddy.
           reverse_proxy [::1]:9980
         '';
       };
 
-      # webmail.<domain> — Bulwark (system/mail/bulwark.nix). Public: Bulwark's own
-      # login gates it, and the login IS the mail account.
+      # webmail.<domain> — Bulwark (system/mail/bulwark.nix). Public: its login IS
+      # the mail account.
       "webmail.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-webmail.${domain}.log {
@@ -274,29 +213,19 @@ in
         '';
         extraConfig = ''
           reverse_proxy 127.0.0.1:3100 {
-            # Bulwark listens plaintext on :3100, but its next-intl middleware
-            # builds an ABSOLUTE rewrite target (e.g. "/" -> "/en") using
-            # X-Forwarded-Proto. Forwarding "https" makes it proxy to
-            # https://localhost:3100/en — TLS at its own plaintext port — which
-            # dies with EPROTO "wrong version number" and surfaces as a 500 on
-            # every page. "http" is the correct value for THIS hop and fixes it.
-            # Cookies are unaffected: Bulwark's COOKIE_SECURE defaults to true
-            # independently of this header.
-            # Verified against Bulwark 1.9.2: GET / with XFP=https -> 500,
-            # XFP=http -> 200, absent -> 200.
+            # Bulwark's next-intl builds an ABSOLUTE rewrite target from
+            # X-Forwarded-Proto; forwarding "https" makes it proxy to
+            # https://localhost:3100 (its own plaintext port) → EPROTO 500 on every
+            # page. "http" is correct for this hop. COOKIE_SECURE is independent.
             header_up X-Forwarded-Proto http
           }
         '';
       };
 
-      # vault.<domain> — Vaultwarden (system/web/vaultwarden), the
-      # Bitwarden-compatible password manager.
-      #
-      # Deliberately PUBLIC: Vaultwarden's own login gates it, and Bitwarden
-      # browser extensions / phone apps must reach it from anywhere. A Caddy
-      # basic_auth layer would break every non-browser client (as it would OPDS
-      # on the calibre vhost). TLS is Caddy's own ACME over HTTP-01 on :80, so
-      # the `vault` A record must be DNS-only (grey cloud).
+      # vault.<domain> — Vaultwarden. PUBLIC: its own login gates it, and
+      # Bitwarden extensions/phones must reach it from anywhere (basic_auth would
+      # break non-browser clients). TLS is Caddy's own ACME over HTTP-01 on :80,
+      # so the `vault` A record must be DNS-only / grey cloud.
       "vault.${domain}" = {
         logFormat = ''
           output file /var/log/caddy/access-vault.${domain}.log {
@@ -305,42 +234,28 @@ in
           }
         '';
         extraConfig = ''
-          # WebSocket upgrade for live sync is handled automatically by
-          # reverse_proxy. Vaultwarden reads the client IP from
-          # X-Forwarded-For, which Caddy sets.
-          #
-          # ⚠ Vaultwarden's IP_HEADER defaults to X-Real-IP, NOT X-Forwarded-For
-          # — so without the header_up below every client looks like 127.0.0.1
-          # (Caddy's own address) and Vaultwarden's rate limits become GLOBAL
-          # rather than per-client: 3 failed /admin logins in 5 min would lock
-          # the panel for everyone. Caddy OVERWRITES X-Real-IP with the true
-          # peer, unlike X-Forwarded-For, which it appends to (spoofable).
           reverse_proxy 127.0.0.1:8222 {
+            # Vaultwarden's IP_HEADER defaults to X-Real-IP, NOT X-Forwarded-For —
+            # without this every client looks like 127.0.0.1 and rate limits go
+            # GLOBAL (3 failed /admin logins locks the panel for everyone). Caddy
+            # OVERWRITES X-Real-IP with the true peer (unlike X-Forwarded-For,
+            # which it appends to and is spoofable).
             header_up X-Real-IP {remote_host}
           }
 
-          # /admin is TAILNET-ONLY: it can create users and read diagnostics, so
-          # the public vhost refuses it outright. Reach it over Tailscale
-          # instead — see the "admin over the tailnet" runbook in
-          # system/web/vaultwarden. (`respond` is ordered before `reverse_proxy`
-          # by Caddy's default directive order, so this wins.)
+          # /admin is TAILNET-ONLY (can create users, read diagnostics); the public
+          # vhost refuses it. Reach it over Tailscale — runbook in
+          # system/web/vaultwarden. (`respond` is ordered before reverse_proxy.)
           @admin path /admin /admin/*
           respond @admin 403
         '';
       };
 
-      # NOTE: there is deliberately NO admin.<domain> vhost.
-      # Stalwart serves its control panel at /admin on its HTTP listener, and
-      # mail.<domain> proxies that listener — so the panel lives at
-      # https://mail.<domain>/admin, gated by Stalwart's OWN admin login.
-      # A separate vhost bought nothing: the Caddy basic_auth in front of it was
-      # bypassable by simply visiting mail.<domain>/admin, AND it *broke* the
-      # panel — the browser reuses the cached Caddy Authorization header for the
-      # SPA's own login call, so Stalwart received the Caddy username/password
-      # and answered "Incorrect username or password".
+      # Deliberately NO admin.<domain> vhost: Stalwart's panel lives at
+      # https://mail.<domain>/admin (gated by Stalwart's own login). A separate
+      # vhost was bypassable by visiting mail.<domain>/admin AND broke the panel —
+      # the browser reuses the cached Caddy Authorization header for the SPA's own
+      # login, so Stalwart got the Caddy credentials and refused it.
     };
   };
-
-  # The docroot itself is declared in system/web/notes-site, together with the
-  # service that builds into it.
 }
