@@ -32,6 +32,11 @@
         config.allowUnfree = true; # rocmSupport intentionally NOT set (no GPU)
       };
     in {
+      # Lets you `nix build .#collabora-code` independently of the machine build,
+      # to verify the CODE AppImage wrapper before a full nixos-rebuild switch.
+      packages.${system}.collabora-code =
+        pkgs.callPackage ./system/web/collabora-code.nix { };
+
       nixosConfigurations.tsiru-cloud = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
