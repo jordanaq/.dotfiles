@@ -81,7 +81,11 @@ in
 
       WorkingDirectory = "/var/lib/cool";
 
-      ExecStart = [
+      # This nixpkgs rev does NOT join an ExecStart LIST into one command (that's
+      # a newer-Nixpkgs behaviour); a list here emits repeated ExecStart= lines,
+      # which systemd rejects ("bad unit file setting" — max one ExecStart= per
+      # unit). So build a single escaped string from the arg list.
+      ExecStart = lib.concatStringsSep " " (map lib.escapeShellArg [
         "${collaboraCode}/bin/collabora-online-code"
         "--port=9980"
         "--use-env-vars"
@@ -119,7 +123,7 @@ in
         "--o:memproportion=40"
 
         "--o:admin_console.enable=false"
-      ];
+      ]);
 
       KillMode = "mixed";
       KillSignal = "SIGINT";
