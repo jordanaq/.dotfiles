@@ -29,6 +29,11 @@ let
 
   # 8081 is already used by calibre-server; keep LanguageTool off it.
   languagetoolPort = 8091;
+
+  # Nous Portal's OpenAI-compatible endpoint. Must be admitted to Collabora's
+  # outbound host allowlist (net.lok_allow / net.post_allow) or the AI sidebar
+  # fails with "Target host is not in the allowed host list".
+  aiEndpointHost = "inference-api.nousresearch.com";
 in
 {
   # ---------------------------------------------
@@ -134,6 +139,14 @@ in
         "--o:ai.allow_user_settings=true"
         "--o:ai.api_url=https://inference-api.nousresearch.com"
         "--o:ai.model=~deepseek/deepseek-v4-flash-latest"
+
+        # Admit the AI provider's host to the engine's OUTBOUND host allowlist.
+        # Without this the AI sidebar errors "Target host is not in the allowed
+        # host list". Appended at index 14 (lok_allow) / 13 (post_allow) to ADD
+        # to the stock defaults (14/13 entries) without clobbering loopback and
+        # the private ranges that LanguageTool/localhost rely on.
+        "--o:net.lok_allow.host[14]=${aiEndpointHost}"
+        "--o:net.post_allow.host[13]=${aiEndpointHost}"
         # Key from /etc/secrets/coolwsd.env via systemd EnvironmentFile (${}
         # expansion happens in systemd before shell/exec, so it stays out of the
         # nix store AND out of git). File: COLLABORA_AI_API_KEY=<sk-...>
