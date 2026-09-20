@@ -8,7 +8,6 @@
     ./searx.nix
     ./linkstack.nix
     ./calibre
-    ./office.nix
     ./notes-site
     ./vaultwarden
   ];

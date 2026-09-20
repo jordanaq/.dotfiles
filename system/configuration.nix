@@ -1,5 +1,5 @@
 # tsiru-cloud — lean server base configuration (server-only branch).
-# Services live in ./web, ./mail, ./monitoring, ./security, ./networking; see README.
+# Services live in ./web, ./office, ./mail, ./monitoring, ./security, ./networking; see README.
 
 # Linode/LISH boot + networking params taken from nixpkgs' linode-config.nix but
 # hand-picked — importing that module would conflict (it defines fileSystems."/"
@@ -17,6 +17,7 @@ in {
     ./mail
     ./monitoring
     ./networking
+    ./office
     ./security
     ./web
   ];
