@@ -77,8 +77,11 @@ in
 
     serviceConfig = {
       # AI API key lives ONLY here (0600), never git/nix-store. Feed it to the
-      # --o:ai.api_key arg below via ${} expansion.
-      EnvironmentFile = [ "/etc/secrets/coolwsd.env" ];
+      # --o:ai.api_key arg below via ${} expansion. The leading "-" makes a
+      # MISSING file non-fatal (systemd would otherwise refuse to start the
+      # unit — crash-loop "Failed to load environment files"). Office must run
+      # even before the secret exists; AI stays unconfigured until it does.
+      EnvironmentFile = [ "-/etc/secrets/coolwsd.env" ];
 
       User = "cool";
       Group = "cool";
