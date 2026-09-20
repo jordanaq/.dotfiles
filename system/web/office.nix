@@ -62,7 +62,7 @@ in
     # Do not expose LanguageTool outside the machine.
     public = false;
 
-    settigns = {
+    settings = {
       languageModel = "/var/lib/languagetool-ngrams";
     };
 
