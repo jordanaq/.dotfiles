@@ -86,7 +86,7 @@ in
       # MISSING file non-fatal (systemd would otherwise refuse to start the
       # unit — crash-loop "Failed to load environment files"). Office must run
       # even before the secret exists; AI stays unconfigured until it does.
-      EnvironmentFile = [ "/etc/secrets/coolwsd.env" ];
+      EnvironmentFile = [ "-/etc/secrets/coolwsd.env" ];
 
       User = "cool";
       Group = "cool";
