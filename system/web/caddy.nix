@@ -87,12 +87,23 @@ in
         '';
       };
 
-      # tsiru.pet — the public personal site, built by Zola at nix build time
-      # from the tsiru-pet flake input and served from the store path: no
-      # service/DB, zero runtime RAM. Deliberately PUBLIC.
-      "${domain}" = {
+      # home.tsiru.pet — the public personal site, built by Zola at nix build
+      # time from the tsiru-pet flake input and served from the store path: no
+      # service/DB, zero runtime RAM. Deliberately PUBLIC. The site moved here
+      # from the apex, so this is the "real" homepage now.
+      "home.${domain}" = {
         extraConfig = ''
           root * ${inputs.tsiru-pet.packages.${config.nixpkgs.hostPlatform.system}.default}
+          file_server
+        '';
+      };
+
+      # tsiru.pet — the apex, currently a bare placeholder (the site lives at
+      # home.${domain}). Same flake input, but the separate `landing` output.
+      # Deliberately PUBLIC.
+      "${domain}" = {
+        extraConfig = ''
+          root * ${inputs.tsiru-pet.packages.${config.nixpkgs.hostPlatform.system}.landing}
           file_server
         '';
       };

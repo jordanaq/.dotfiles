@@ -20,7 +20,7 @@ desktop/GUI/GPU stack and keeps only what the server needs.
 | **calibre-web** | `https://library.tsiru.pet` | Browser UI for the Calibre library. Behind Caddy; calibre-web's own login is the gate. |
 | **calibre-server** | `https://calibre.tsiru.pet` | Calibre content server — remote `calibredb` + OPDS. Behind Caddy; its own auth is the gate. |
 | **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/web/linkstack.nix`. |
-| **Personal site** | `https://tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. No auth. |
+| **Personal site** | `https://home.tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. The apex `tsiru.pet` is currently a bare placeholder. No auth. |
 | **Notes site** | `https://notes.tsiru.pet` | Public Quartz export of the vault's `Concepts/` folder, built **and** published on this box by `notes-publish.service`. Static files only. See `system/web/notes-site`. |
 | **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/mail/stalwart/default.nix`. |
 | **Bulwark** | `https://webmail.tsiru.pet` | Self-hosted JMAP webmail client for Stalwart (prebuilt Node bundle — no PHP/DB; accounts live in Stalwart). See `system/mail/bulwark.nix`. |
@@ -117,9 +117,10 @@ no rebuild.
 
 ## DNS
 
-An `A` record for each public name — the apex `tsiru.pet` plus `search.`,
-`library.`, `calibre.`, `links.`, `notes.`, `mail.`, `webmail.`, `vault.`
-→ `<LINODE_IP>`.
+An `A` record for each public name — the apex `tsiru.pet` plus `home.`,
+`search.`, `library.`, `calibre.`, `links.`, `notes.`, `mail.`, `webmail.`,
+`vault.` → `<LINODE_IP>`. (`tsiru.pet` is currently a bare placeholder — the
+personal site lives at `home.tsiru.pet`.)
 
 Spaceship is the DNS authority. Two certificate paths are in play:
 
@@ -181,13 +182,16 @@ Keep the two in sync.
   `https://links.tsiru.pet` — the browser installer creates the admin account
   and SQLite DB. No secret file is needed up front.
 
-## Personal site (tsiru.pet)
+## Personal site (home.tsiru.pet)
 
 The public bio + projects page. Source and build live in a separate repo,
 [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet); this config
 consumes it as the `tsiru-pet` flake input and Caddy serves the built store
-path at the apex domain. Nothing runs on the box for it.
+path at **`home.tsiru.pet`**. Nothing runs on the box for it.
 
+- **The apex `tsiru.pet` is a bare placeholder.** Caddy serves the site's
+  separate `landing` package output there for now (the site moved off the
+  apex to `home.`).
 - **Editing the page:** change content in the site repo and push — the box
   picks it up on the next `nix flake update tsiru-pet` + rebuild.
 - **GitHub-derived files:** the "From GitHub" project list and the profile
