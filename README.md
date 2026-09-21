@@ -22,15 +22,17 @@ desktop/GUI/GPU stack and keeps only what the server needs.
 | **LinkStack** | `https://links.tsiru.pet` | Link-in-bio page (Linktree alternative). php-fpm pool + SQLite; app lives in `/var/lib/linkstack`. See `system/web/linkstack.nix`. |
 | **Personal site** | `https://home.tsiru.pet` | Public bio + projects page (Zola). Built from the [`jordanaq/tsiru-pet`](https://github.com/jordanaq/tsiru-pet) flake input and served from the store path. The apex `tsiru.pet` is currently a bare placeholder. No auth. |
 | **Notes site** | `https://notes.tsiru.pet` | Public Quartz export of the vault's `Concepts/` folder, built **and** published on this box by `notes-publish.service`. Static files only. See `system/web/notes-site`. |
-| **Stalwart** | `mail.tsiru.pet` (SMTP `25`/`465`/`587`, IMAPS `993`, JMAP/CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/mail/stalwart/default.nix`. |
+| **Stalwart** | `mail.tsiru.pet` (SMTP `25` inbound, SMTP-S `587` **loopback-only** submission, JMAP + CalDAV/CardDAV over Caddy on `443`) | All-in-one mail + collaboration server, 0.16.21 (prebuilt release overlay — nixpkgs still pins 0.15.5). No `465`/IMAPS/POP3 listeners — the only mail client is JMAP. Outbound relayed via SMTP2GO; TLS via `security.acme` DNS-01. See `system/mail/stalwart/default.nix`. |
 | **Bulwark** | `https://webmail.tsiru.pet` | Self-hosted JMAP webmail client for Stalwart (prebuilt Node bundle — no PHP/DB; accounts live in Stalwart). See `system/mail/bulwark.nix`. |
+| **Collabora** | `https://office.tsiru.pet` | In-browser office editor — the WOPI host for office files opened in Bulwark's Files. Caddy terminates TLS and proxies the loopback CODE AppImage at `[::1]:9983`. See `system/office/default.nix`. |
+| **LanguageTool** | loopback only (`127.0.0.1:8091`) | Grammar/spell backend for Collabora's writing aids. Not exposed publicly. See `system/office/languagetool.nix`. |
 | **Vaultwarden** | `https://vault.tsiru.pet` | Bitwarden-compatible password manager (SQLite). Registration closed; `/admin` is tailnet-only. See `system/web/vaultwarden`. |
 | **Uptime Kuma** | tailnet only (`:8443`) | Status/heartbeat monitor. Loopback-only, reached via `tailscale serve` — deliberately **not** in Caddy. See `system/monitoring/uptime-kuma.nix`. |
 | **Tailscale** | — | Private mesh access to the box (no extra public ports). Purely additive. See `system/networking/tailscale.nix`. |
 | **fail2ban** | — | Bans IPs tripping repeated `401`/`403`, or a 4xx on an auth endpoint, across **all** Caddy vhosts (`/var/log/caddy/*.log`; file backend). See `system/security/fail2ban.nix`. |
 | **Caddy** | `:80`, `:443` | Reverse proxy + automatic Let's Encrypt TLS (HTTP-01 on `:80`; the `mail.` cert comes from `security.acme` DNS-01, see below). |
-| **OpenSSH** | `:22` | Key-only, `tsiru` only (`PasswordAuthentication=false`, `PermitRootLogin=no`). |
-| **Firewall** | — | Default deny. Open TCP: `22`, `80`, `443`, `25`, `465`, `587`, `993`; UDP: `41641` (WireGuard/Tailscale). ManageSieve `4190` is deliberately **not** opened — Linode filters it upstream, so it can never be reached from the internet (pentest F-11). |
+| **OpenSSH** | `:22` | Key-only, `tsiru` only (`PasswordAuthentication=false`, `PermitRootLogin=no`). **Tailnet-only** — public `22` is closed by the firewall, reached over Tailscale (or Linode LISH if the tailnet is down). |
+| **Firewall** | — | Default deny. Open TCP: `80`, `443`, `25`; open UDP: `41641` (Tailscale direct WireGuard). Everything else closed: `22` (SSH is tailnet-only, see above), `465`/`993` (no such Stalwart listeners — mail clients are JMAP-only), and `4190` (ManageSieve, filtered by Linode; pentest F-11). SMTP-S `587` exists but binds loopback-only, so it needs no hole. |
 
 ## Installation
 
@@ -118,9 +120,10 @@ no rebuild.
 ## DNS
 
 An `A` record for each public name — the apex `tsiru.pet` plus `home.`,
-`search.`, `library.`, `calibre.`, `links.`, `notes.`, `mail.`, `webmail.`,
-`vault.` → `<LINODE_IP>`. (`tsiru.pet` is currently a bare placeholder — the
-personal site lives at `home.tsiru.pet`.)
+`search.`, `library.`, `calibre.`, `links.`, `notes.`, `mail.`, `office.`,
+`webmail.`, `vault.` → `<LINODE_IP>`. (`tsiru.pet` is currently a bare
+placeholder — the personal site lives at `home.tsiru.pet`.) LanguageTool has
+**no** record: it is loopback-only behind Collabora.
 
 Spaceship is the DNS authority. Two certificate paths are in play:
 
@@ -236,8 +239,11 @@ the panel).
   (`@type = RocksDb`, `/var/lib/stalwart/db`); listeners, routing, domains, and
   accounts live *in the datastore as JMAP objects*, provisioned idempotently at
   boot by `stalwart-cli apply` (`system/mail/stalwart/module/provision.nix`). That
-  provisioning covers SMTP `25`/`465`/`587`, IMAPS `993`, the loopback HTTP
-  listener (`127.0.0.1:8080`, fronted by Caddy), and the outbound routes.
+  provisioning covers SMTP `25` (public inbound), loopback-only submission
+  `127.0.0.1:587`, and the loopback HTTP listener (`127.0.0.1:8080`, fronted by
+  Caddy — this one port serves JMAP **and** CalDAV/CardDAV). There is no `465`,
+  no IMAPS `993`, and no POP3 listener — Bulwark is JMAP-only over `:443`, so no
+  non-HTTP mailbox protocol is exposed.
   There is deliberately **no** ManageSieve listener — see below.
   - **No ManageSieve (`4190`).** Pentest F-11 removed both the listener and its
     firewall opening. Linode filters the port upstream, so no internet client
