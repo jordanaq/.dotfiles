@@ -1,9 +1,12 @@
-# LanguageTool grammar/style checker (loopback only) + English n-gram corpus.
+# LanguageTool grammar/style checker + English n-gram corpus.
 #
-# Native NixOS service, NOT exposed to the network — only Collabora CODE
-# (./default.nix) talks to it. Port lives here as the single source of truth;
-# office/default.nix reads config.services.languagetool.port for the WOPI
-# integration URL.
+# Native NixOS service, bound to all interfaces (`public`) so Tailscale peers
+# can reach it — but the system firewall (system/configuration.nix) keeps it
+# PRIVATE: 8091 is NOT in allowedTCPPorts [80 443 25], so eth0 drops it; only
+# tailscale0 is a trustedInterface, so the tailnet can reach it. Collabora CODE
+# (./default.nix) talks to it over loopback 127.0.0.1:8091. Port lives here as
+# the single source of truth; office/default.nix reads
+# config.services.languagetool.port for the WOPI integration URL.
 {
   lib,
   pkgs,
@@ -36,8 +39,10 @@ in
 
     port = port;
 
-    # Do not expose LanguageTool outside the machine.
-    public = false;
+    # Bind all interfaces so Tailscale peers can use LanguageTool directly.
+    # The firewall (allowedTCPPorts=[80 443 25], tailscale0 trusted) confines
+    # this to the tailnet — 8091 is blocked on eth0, open on tailscale0.
+    public = true;
 
     settings = {
       languageModel = "/var/lib/languagetool-ngrams";

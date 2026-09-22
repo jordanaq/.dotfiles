@@ -7,8 +7,10 @@
 # AppRun hardcodes --port=9983; net.listen=loopback = IPv6 loopback). Bulwark
 # (webmail.<domain>) is the WOPI host that mints the token and serves the file.
 #
-# LanguageTool lives in ./languagetool.nix (native NixOS service, loopback
-# only); the port it binds is read here from config.services.languagetool.port.
+# LanguageTool lives in ./languagetool.nix (native NixOS service, listens on
+# all interfaces but confined to the tailnet by the firewall — only Collabora
+# and tailnet peers reach it); the port it binds is read here from
+# config.services.languagetool.port.
 #
 # AI provider defaults to Nous Portal / DeepSeek V4 Flash Latest. The API key is
 # intentionally NOT stored here (or in git / the nix store): the coolwsd unit
