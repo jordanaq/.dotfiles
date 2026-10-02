@@ -151,7 +151,10 @@ in {
       #   DP-2 = MSI MAG321CQR (32", 144Hz) -> physically LEFT, mounted VERTICAL
       #   DP-1 = ASUS XG27ACDNG (27", 360Hz) -> physically RIGHT, normal
       # i.e. the same layout as the Hyprland session (DP-2 gets `transform, 1`).
-      ${pkgs.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 0x0 --rotation right --refresh 144
+      # Portrait direction must be `left` to match Hyprland's transform 1.
+      # `right` is that same portrait orientation rotated 180 deg, which showed
+      # the greeter upside down.
+      ${pkgs.xrandr}/bin/xrandr --output DP-2 --primary --mode 2560x1440 --pos 0x0 --rotation left --refresh 144
       ${pkgs.xrandr}/bin/xrandr --output DP-1 --mode 2560x1440 --pos 1440x868 --refresh 120
     '';
   };
