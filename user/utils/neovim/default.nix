@@ -2,10 +2,15 @@
 
 {
   programs.neovim = let
-    toLua = str: "lua << EOF\n${str}\nEOF\n";
-    toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
+    toLua = str: "\n${str}\n";
+    toLuaFile = file: "\n${builtins.readFile file}\n";
+    # toLua = str: "lua << EOF\n${str}\nEOF\n";
+    # toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
   in {
     enable = true;
+
+    withRuby = true;
+    withPython3 = true;
 
     package = pkgs.neovim-unwrapped;
     defaultEditor = true;
@@ -15,26 +20,45 @@
     vimdiffAlias = true;
 
     extraPackages = with pkgs; [
+      # AI assistant tooling
+      curl
+      file
+      ripgrep
+
       # Language servers
-      harper
+      bash-language-server
+      clang-tools
       haskell-language-server
+      (julia.withPackages [
+        "LanguageServer"
+        "StaticLint"
+        "SymbolServer"
+      ])
       ltex-ls-plus
       lua-language-server
+      marksman
       millet
       nil
       pyright
+      rust-analyzer
+      svelte-language-server
+      taplo
       typescript-language-server
       vale-ls
+      vscode-langservers-extracted
+      yaml-language-server
     ];
 
     plugins = with pkgs.vimPlugins; [
       {
         plugin = bufferline-nvim;
+        type = "lua";
         config = toLua "require('bufferline').setup{}";
       }
 
       {
         plugin = catppuccin-nvim;
+        type = "viml";
         config = "colorscheme catppuccin-macchiato";
       }
 
@@ -43,6 +67,7 @@
 
       {
         plugin = comment-nvim;
+        type = "lua";
 	      config = toLua "require(\"Comment\").setup()";
       }
 
@@ -51,14 +76,17 @@
       lazy-nvim
       {
         plugin = lazy-lsp-nvim;
+        type = "lua";
         config = toLua ''
           require("lazy-lsp").setup {
-            prefer_local = true
+            prefer_local = true,
+            use_vim_lsp_config = true
           }
         '';
       }
       {
-        plugin = lsp-zero-nvim;
+        plugin = nvim-lspconfig;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/lsp.lua;
       }
 
@@ -67,17 +95,17 @@
       luasnip
       lualine-nvim
 
-      nvim-lspconfig
-
       neodev-nvim
 
       {
         plugin = neo-tree-nvim;
+        type = "lua";
         config = toLua "vim.keymap.set('n', '<Leader>e', '<Cmd>Neotree toggle<CR>', { noremap = true, silent = true })";
       }
 
       {
         plugin = noice-nvim;
+        type = "lua";
         config = toLua ''
           require("noice").setup({
             lsp = {
@@ -101,16 +129,20 @@
       nvim-cmp 
       {
         plugin = nvim-cmp;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/cmp.lua;
       }
 
       nvim-web-devicons
+      
+      obsidian-nvim
 
       persistence-nvim
 
       telescope-fzf-native-nvim
       {
         plugin = telescope-nvim;
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/telescope.lua;
       }
 
@@ -124,11 +156,13 @@
           #  p.tree-sitter-python
           #  p.tree-sitter-json
           #]));
+        type = "lua";
         config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
       }
 
       {
         plugin = vim-highlightedyank;
+        type = "lua";
         config = toLua "vim.g.highlightedyank_highlight_duration = 300";
       }
 
@@ -145,7 +179,7 @@
       which-key-nvim
     ];
 
-    extraLuaConfig = ''
+    initLua = ''
 
       vim.g.mapleader = ' '
       vim.g.maplocalleader = ' '
@@ -159,6 +193,7 @@
       -- vim.o.relativenumber = true
       
       vim.o.signcolumn = 'yes'
+      vim.o.splitright = true
       
       vim.o.tabstop = 2
       vim.o.shiftwidth = 2
@@ -169,6 +204,33 @@
       vim.o.termguicolors = true
       
       vim.o.mouse = 'a'
+
+      vim.cmd('filetype plugin indent on')
+      vim.cmd('syntax enable')
+
+      vim.filetype.add({
+        extension = {
+          cabal = 'cabal',
+          fun = 'sml',
+          hs = 'haskell',
+          lhs = 'lhaskell',
+          nix = 'nix',
+          sig = 'sml',
+          sml = 'sml',
+          svelte = 'svelte',
+          toml = 'toml',
+        },
+      })
+
+      -- C/C++: use a tab size of 4 (everything else stays at 2)
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = { 'c', 'cpp' },
+        callback = function()
+          vim.opt_local.tabstop = 4
+          vim.opt_local.shiftwidth = 4
+          vim.opt_local.expandtab = true
+        end,
+      })
     '';
   };
 }
