@@ -11,7 +11,9 @@ let
 in
 {
   home.packages = with pkgs; [
-    zotero
+    # zotero dropped 2026-10-01: nixpkgs' zotero 10.x aborts against Firefox ESR
+    # 153 (NixOS/nixpkgs#568692 — the ESR 140 it needs was dropped in #567873).
+    # Fix is upstream PR #569006; re-add `zotero` here once it lands.
     obsidian
     jabrefPinned
     (lib.hiPrio (writeShellScriptBin "obsidian" ''
