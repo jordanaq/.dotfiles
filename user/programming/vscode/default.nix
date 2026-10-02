@@ -119,4 +119,13 @@ in {
       };
     };
   };
+
+  # `programs.vscode` only manages settings.json/keybindings.json — the BYOK
+  # provider list (chatLanguageModels.json) is not covered, so symlink a
+  # committed copy. Edit THIS file, not ~/.config/Code/User/chatLanguageModels.json
+  # (the live path is a read-only symlink into the nix store after a switch).
+  # The "Nous Portal" provider talks to the local Hermes subscription proxy
+  # (`hermes proxy start`, http://127.0.0.1:8645/v1) which attaches the Portal
+  # credential, so the apiKey in the JSON is a deliberate non-secret placeholder.
+  home.file.".config/Code/User/chatLanguageModels.json".source = ./chatLanguageModels.json;
 }
