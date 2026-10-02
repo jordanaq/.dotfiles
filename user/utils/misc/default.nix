@@ -2,11 +2,11 @@
 
 {
   home.packages = with pkgs; [
-    killall
+    glow
+    graphviz
     htop
-    maliit-keyboard
-    maliit-framework
+    killall
+    libfsm
     xclip
-    xorg.xkill
   ];
 }
