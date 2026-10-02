@@ -10,6 +10,11 @@ let
     v = "nvim";
     z = "zoxide";
     g = "git";
+    m = "make";
+    ma = "m all";
+    mc = "m clean";
+    cg = "cargo";
+    cgb = "cg build";
   };
 in {
   programs = {
