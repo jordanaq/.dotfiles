@@ -69,6 +69,26 @@ in {
     '';
   };
 
+  # GNOME polkit authentication agent, tied to the graphical session.
+  # The hypr startup script used to call /usr/lib/xfce-polkit/xfce-polkit,
+  # an Archcraft path that does not exist on NixOS, so Hyprland sessions had
+  # no polkit agent at all and every privileged prompt would fail. Running it
+  # as a unit instead means it starts and stops with graphical-session.target
+  # (activated by UWSM) rather than being fired blind from a shell script.
+  systemd.user.services.polkit-gnome = {
+    Unit = {
+      Description = "GNOME PolicyKit authentication agent";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   xdg.portal = {
     enable = true;
     config.common = {
