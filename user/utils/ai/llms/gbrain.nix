@@ -156,9 +156,13 @@ in {
   home.sessionVariables.AGENT_BROWSER_EXECUTABLE_PATH =
     "${pkgs.chromium}/bin/chromium";
 
-  # hindsight-all (torch/tokenizers) needs Nix's libstdc++/zlib on the linker
-  # path so Hermes can import the local-embedded memory daemon on NixOS.
-  home.sessionVariables.LD_LIBRARY_PATH = "${hindsightLdLibraryPath}";
+  # NOTE: LD_LIBRARY_PATH used to be set GLOBALLY here via
+  # home.sessionVariables for hindsight-all (torch/tokenizers). That is
+  # REMOVED as of 2026-09: the global export poisoned every process in the
+  # login session (incl. Hyprland), forcing an older libstdc++ and breaking
+  # the dynamic linker after a Hyprland upgrade (black screen at boot).
+  # The hermes-gateway service below sets its own LD_LIBRARY_PATH in its
+  # Environment, which is all Hindsight needs.
 
   home.file.".hermes/config.yaml".source = ./hermes-config.yaml;
 
