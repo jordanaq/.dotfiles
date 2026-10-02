@@ -1,13 +1,19 @@
 model:
   provider: nous
-  default: 'deepseek/deepseek-v4.1-flash'
+  default: '~deepseek/deepseek-flash-latest'
   # base_url intentionally omitted: the `nous` provider resolves its
   # inference endpoint from auth state / the default Portal URL. Leaving the
   # stale localhost:11434 base_url would override it.
-  # DeepSeek-V4.1-Flash runs a 1,048,576-token context window, so the full
-  # window is set rather than a low cap. Cheap, tool-capable, structured-
-  # output-capable (2026-09-11 roll from z-ai/glm-5.3-flash). News/politics/
-  # ingest cron jobs remain pinned to GLM to avoid Chinese-censorship bias.
+  # The `~` prefix is a real servable portal ID — the "deepseek flash latest"
+  # pointer (routes to the newest non-v4 flash weights, currently v4.1-flash,
+  # via a structured-output-capable route). Quote it in YAML.
+  # 1,048,576-token context window. $0.035/$0.29 per M — among the cheapest
+  # deepseek flash routes on the portal.
+  # Probe-verified 2026-09-25 in the runtime and via /v1/chat/completions
+  # (routes to deepseek/deepseek-v4.1-flash, returns PROBE_OK).
+  # Fleet: 12 cron jobs stay pinned to deepseek/deepseek-v4.1-flash and the
+  # politics brief stays pinned to z-ai/glm-5.3-flash (non-PRC, censorship
+  # carve-out); unpinned jobs inherit this default.
   context_length: 1048576
 
 agent:
