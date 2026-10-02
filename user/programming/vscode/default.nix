@@ -124,6 +124,9 @@ in {
   # provider list (chatLanguageModels.json) is not covered, so symlink a
   # committed copy. Edit THIS file, not ~/.config/Code/User/chatLanguageModels.json
   # (the live path is a read-only symlink into the nix store after a switch).
+  # Regenerate it from the Portal catalog with ./generate-chat-language-models.py
+  # (reads the proxy's /v1/models JSON, so context/vision/tool-calling metadata is
+  # never hand-written; edit CURATED in that script to change the offered set).
   # The "Nous Portal" provider talks to the local Hermes subscription proxy
   # (`hermes proxy start`, http://127.0.0.1:8645/v1) which attaches the Portal
   # credential, so the apiKey in the JSON is a deliberate non-secret placeholder.
