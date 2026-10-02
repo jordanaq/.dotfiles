@@ -65,6 +65,13 @@
       cmp_luasnip
       cmp-nvim-lsp
 
+      plenary-nvim
+      {
+        plugin = codecompanion-nvim;
+        type = "lua";
+        config = toLuaFile ./assets/nvim/plugin/codecompanion.lua;
+      }
+
       {
         plugin = comment-nvim;
         type = "lua";
