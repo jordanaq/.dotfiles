@@ -13,11 +13,12 @@
   home = {
     username = "tsiru";
     homeDirectory = "/home/tsiru";
-    stateVersion = "24.11"; # Read home manager release notes before changing.
+    stateVersion = "26.05"; # Read home manager release notes before changing.
 
     # Packages
     packages = with pkgs; [
       eza
+      sqlite
     ];
 
     sessionVariables = {
