@@ -6,6 +6,11 @@
 
     comfyui-nix = {
       url = "github:utensils/comfyui-nix";
+      # Share OUR nixpkgs (and the CPU-torch + jupyter-server-test overrides
+      # below). Without this, comfyui-nix builds its python env from its own
+      # pinned nixpkgs, which our overlays cannot reach — the cause of the
+      # unfixable jupyter-server test failure in the 2026-09-16 update.
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
@@ -112,7 +117,51 @@
             let
               cpuTorch = set: set.torch.override { rocmSupport = false; };
               withCpuTorch = py: py.override {
-                packageOverrides = _: set: { torch = cpuTorch set; };
+                packageOverrides = _: set: {
+                  torch = cpuTorch set;
+
+                  # jupyter-server 2.21.0: the new regression test
+                  # test_disconnect_resolves_orphaned_kernel_info_future
+                  # (upstream PR #1632) opens real ZMQ/websocket channels with
+                  # a ~1s polling budget and times out DETERMINISTICALLY in
+                  # the Nix sandbox (failed twice back-to-back; sibling tests
+                  # in the same file have known sandbox flakiness, see
+                  # upstream PR #1628). 945/946 tests pass. Skip just this one.
+                  #
+                  # Its sibling test_no_fd_leak_on_disconnect_with_orphaned_
+                  # kernel_info_channel asserts no FD leak across 100
+                  # disconnects and fails the same way under build load
+                  # ("6 FDs leaked after 100 disconnects"). comfyui-nix skips
+                  # both of these in its own python-overrides.nix — keep this
+                  # list in step with that one.
+                  jupyter-server = set.jupyter-server.overridePythonAttrs (old: {
+                    disabledTests = (old.disabledTests or [ ])
+                      ++ [
+                        "test_disconnect_resolves_orphaned_kernel_info_future"
+                        "test_no_fd_leak_on_disconnect_with_orphaned_kernel_info_channel"
+                      ];
+                  });
+
+                  # portalocker 3.2.0: test_shared_processes uses a 1.5s
+                  # multiprocessing timeout that trips in the sandbox under
+                  # load (42 passed, 1 timing TimeoutError).
+                  portalocker = set.portalocker.overridePythonAttrs (old: {
+                    disabledTests = (old.disabledTests or [ ])
+                      ++ [ "test_shared_processes" ];
+                  });
+
+                  # NOTE: do NOT add an override for a package unless its
+                  # UNMODIFIED nixpkgs build is uncached or genuinely broken.
+                  # Any overridePythonAttrs here changes that package's drv hash,
+                  # and the hash change PROPAGATES to every package whose test
+                  # suite uses it — turning cache hits into multi-minute source
+                  # builds. 2026-10: an `inline-snapshot.doCheck = false` entry
+                  # here invalidated openai's cached build (openai's tests use
+                  # inline-snapshot), which then ran its flaky 15s mTLS test and
+                  # broke `home-manager switch`. Check first:
+                  #   nix path-info --store https://cache.nixos.org <pkg.outPath>
+                  # If it prints the path, the package is cached — leave it alone.
+                };
               };
             in
             {
