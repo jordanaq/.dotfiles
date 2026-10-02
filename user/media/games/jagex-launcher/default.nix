@@ -7,9 +7,9 @@
 #
 # NOTE: the upstream URL points at "latest", so the binary moves whenever Jagex
 # ships an update. The sha256 below pins the exact build we fetched
-# (AppImage internal version 0.0.27, dated 2026-07-17; re-pinned 2026-09-12
-# after Jagex replaced the payload behind the same "latest" URL). Bump the hash
-# when you want a newer beta.
+# (AppImage internal version 0.1.7, payload dated 2026-09-15; re-pinned
+# 2026-10-01 after Jagex replaced the payload behind the same "latest" URL).
+# Bump the hash when you want a newer beta.
 {
   pkgs,
   lib,
@@ -18,11 +18,11 @@
 
 let
   pname = "jagex-launcher";
-  version = "0.0.27";
+  version = "0.1.7";
 
   src = pkgs.fetchurl {
     url = "https://rs-launcher-updates.runescape.com/production/linux/x64/latest/jagex-launcher-beta-linux-x86_64.AppImage";
-    sha256 = "sha256-JOSt564lBOSitSBnV307s2D8McMlzvOVz2Q8jVy91F8=";
+    sha256 = "sha256-tfkiDUGa3w6PHRgvY62aCRf8al4w0reIoDYC3LLM0io=";
   };
 
   # Extract the AppImage into the nix store.

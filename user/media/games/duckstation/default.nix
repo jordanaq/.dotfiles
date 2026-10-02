@@ -2,11 +2,15 @@
 
 let
   pname = "duckstation";
-  version = "0.1-11826";
+  # Upstream tags the rolling build `latest` (no `v` prefix) and `preview` for
+  # prereleases; versioned releases look like `v0.1-11826`. Pinning a rolling
+  # tag means the sha256 below must be re-pinned whenever upstream rebuilds —
+  # nix then fails with a hash mismatch (not a 404).
+  version = "latest";
 
   src = pkgs.fetchurl {
-    url = "https://github.com/stenzek/duckstation/releases/download/v${version}/DuckStation-x64.AppImage";
-    hash = "sha256-xcip3k38EOeUE33Li6uXYMpXjfKqe+jBIVFxvru6WWU=";
+    url = "https://github.com/stenzek/duckstation/releases/download/${version}/DuckStation-x64.AppImage";
+    hash = "sha256-wv0mJXrFz+/k93thsEuP4pn5xODPa4UfxSWcgVl5Rmo=";
   };
 
   extracted = pkgs.appimageTools.extract { inherit pname version src; };
