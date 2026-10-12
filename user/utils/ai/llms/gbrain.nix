@@ -12,12 +12,14 @@ let
   gbrainAutopilotRepo = "${config.home.homeDirectory}/brain";
   # Hindsight memory provider (local-embedded daemon) runs from a user venv,
   # since the Nix-store Hermes package is read-only and cannot pip-install
-  # hindsight-all into its own site-packages. Hermes imports the daemon via
-  # PYTHONPATH; both interactive shells and the gateway service get it below.
+  # hindsight-all into its own site-packages. That venv is Python 3.12 while
+  # the Hermes runtime is Python 3.14, so it must NEVER be added to a Hermes
+  # process's PYTHONPATH — see the note in the hermes-gateway service below.
+  # The venv is still referenced directly (pg0 CLI, standalone tooling) by
+  # absolute path, which is version-safe.
   # hindsight-all pulls in torch/tokenizers which need Nix's libstdc++/zlib on
   # the linker path (same class of fix as AGENT_BROWSER_EXECUTABLE_PATH).
   hindsightVenv = "${config.home.homeDirectory}/.local/share/hermes-hindsight-venv";
-  hindsightVenvSitePackages = "${hindsightVenv}/lib/python3.12/site-packages";
   hindsightLdLibraryPath = lib.makeLibraryPath [
     pkgs.stdenv.cc.cc
     pkgs.zlib
@@ -196,9 +198,17 @@ in {
         # interactive shells but NOT to systemd user services, so we set
         # it here explicitly.
         "AGENT_BROWSER_EXECUTABLE_PATH=${pkgs.chromium}/bin/chromium"
-        # Let the read-only Hermes store import the user-venv's
-        # hindsight-all for the local-embedded memory daemon.
-        "PYTHONPATH=${hindsightVenvSitePackages}"
+        # NOTE: do NOT put the hindsight venv on this service's PYTHONPATH.
+        # The venv is Python 3.12; the Hermes runtime is Python 3.14 (since the
+        # 2026-10-01 hermes-agent bump). PYTHONPATH is prepended ahead of the
+        # runtime's own site-packages, so shared pure-Python packages resolve to
+        # their 3.12 copies and compiled extensions fail to load — e.g.
+        # `ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'`,
+        # which killed every agent-mode cron job (all jobs failed at OpenAI
+        # client init for ~10 days). The hindsight memory plugin was also
+        # uninstalled from ~/.hermes/plugins, so nothing needs this path.
+        # If hindsight is reinstalled, rebuild the venv on the SAME Python
+        # version as the runtime (python3.14) instead of re-adding PYTHONPATH.
         # hindsight-all (torch/tokenizers) needs Nix's libstdc++/zlib on the
         # linker path to import on NixOS.
         "LD_LIBRARY_PATH=${hindsightLdLibraryPath}"
