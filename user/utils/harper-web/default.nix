@@ -3,7 +3,7 @@
 # This module is the single home for Harper tooling outside of Neovim's editor
 # config:
 #   * `harper` (ships `harper-cli` + `harper-ls`) on the user PATH, so Neovim's
-#     `harper_ls` LSP (configured in user/utils/neovim) keeps working via lazy-lsp.
+#     native `harper_ls` configuration in user/utils/neovim can start it.
 #   * A self-hosted server for the Harper web app, built from source
 #     (see ~/src/harper, `nix develop ~/.dotfiles --command just build-web`).
 #     Serves on localhost; no data leaves the machine.

@@ -1,55 +1,24 @@
 local adapters = require("codecompanion.adapters")
+local codecompanion_settings = require("dotfiles.settings").codecompanion
+local adapter = codecompanion_settings.adapter
 
 require("codecompanion").setup({
-  display = {
-    chat = {
-      window = {
-        layout = "vertical",
-        position = "right",
-      },
-    },
-  },
+  display = { chat = { window = codecompanion_settings.chatWindow } },
   adapters = {
-    -- OpenAI-compatible adapter pointed at the Nous Portal inference API.
-    -- The API key is read from the NOUS_API_KEY env var, which is exported
-    -- into the session env from the git-ignored ~/.config/nous/secrets.env
-    -- (see gbrain.nix) — the key never lives in the dotfiles repo.
-    openai = function()
-      return adapters.extend("openai", {
-        env = {
-          url = "https://inference-api.nousresearch.com/v1",
-          api_key_name = "NOUS_API_KEY",
-        },
+    [adapter.name] = function()
+      return adapters.extend(adapter.name, {
+        env = codecompanion_settings.env,
         schema = {
-          model = {
-            default = "deepseek/deepseek-v4-flash",
-          },
-          choices = {
-            "deepseek/deepseek-v4-flash",
-          },
+          model = { default = adapter.model },
+          choices = { adapter.model },
         },
       })
     end,
   },
   interactions = {
-    chat = {
-      adapter = {
-        name = "openai",
-        model = "deepseek/deepseek-v4-flash",
-      },
-    },
-    inline = {
-      adapter = {
-        name = "openai",
-        model = "deepseek/deepseek-v4-flash",
-      },
-    },
-    background = {
-      adapter = {
-        name = "openai",
-        model = "deepseek/deepseek-v4-flash",
-      },
-    },
+    chat = { adapter = vim.deepcopy(adapter) },
+    inline = { adapter = vim.deepcopy(adapter) },
+    background = { adapter = vim.deepcopy(adapter) },
   },
 })
 
@@ -61,7 +30,7 @@ vim.keymap.set("n", "<leader>aA", function()
     if input and input ~= "" then
       vim.api.nvim_cmd({
         cmd = "CodeCompanionChat",
-        args = { "adapter=openai", "model=deepseek/deepseek-v4-flash", "@{agent} " .. input },
+        args = { "adapter=" .. adapter.name, "model=" .. adapter.model, "@{agent} " .. input },
       }, {})
     end
   end)

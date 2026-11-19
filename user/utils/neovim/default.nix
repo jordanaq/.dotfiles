@@ -1,12 +1,171 @@
-{ config, pkgs, ... }:
+{ lib, pkgs, ... }:
 
+let
+  readLua = builtins.readFile;
+
+  # A server must be listed here for Neovim to enable it.
+  lspServers = with pkgs; [
+    { name = "bashls"; package = bash-language-server; }
+    { name = "clangd"; package = clang-tools; }
+    { name = "cssls"; package = vscode-langservers-extracted; }
+    {
+      name = "eslint";
+      package = vscode-langservers-extracted;
+      settings.workingDirectory.mode = "auto";
+    }
+    { name = "html"; package = vscode-langservers-extracted; }
+    { name = "jsonls"; package = vscode-langservers-extracted; }
+    { name = "lua_ls"; package = lua-language-server; }
+    {
+      name = "ltex_plus";
+      package = ltex-ls-plus;
+      settings.ltex = {
+        checkFrequency = "save";
+        language = "en-US";
+      };
+    }
+    {
+      name = "harper_ls";
+      # The harper-web module already provides harper-ls on PATH.
+      settings."harper-ls".userDictPath = "~/dict.txt";
+    }
+    { name = "hls"; package = haskell-language-server; }
+    # SymbolServer 8.0.1 fails to precompile on Julia 1.13.3.
+    # Re-enable with julia_112 or once the default Julia build works.
+    # { name = "julials"; package = julia_112.withPackages [ "LanguageServer" "StaticLint" "SymbolServer" ]; }
+    { name = "marksman"; package = marksman; }
+    {
+      name = "millet";
+      package = millet;
+      cmd = [ "millet-ls" ];
+    }
+    { name = "nil_ls"; package = nil; }
+    { name = "pyright"; package = pyright; }
+    { name = "rust_analyzer"; package = rust-analyzer; }
+    { name = "svelte"; package = svelte-language-server; }
+    { name = "taplo"; package = taplo; }
+    { name = "ts_ls"; package = typescript-language-server; }
+    { name = "vale_ls"; package = vale-ls; }
+    { name = "yamlls"; package = yaml-language-server; }
+  ];
+
+  settings = {
+    editor = {
+      globals = {
+        mapleader = " ";
+        maplocalleader = " ";
+        vimtex_view_method = "zathura";
+      };
+      options = {
+        clipboard = "unnamedplus";
+        number = true;
+        signcolumn = "yes";
+        splitright = true;
+        tabstop = 2;
+        shiftwidth = 2;
+        expandtab = true;
+        updatetime = 300;
+        termguicolors = true;
+        mouse = "a";
+      };
+      filetypes.extension = {
+        cabal = "cabal";
+        fun = "sml";
+        hs = "haskell";
+        lhs = "lhaskell";
+        nix = "nix";
+        sig = "sml";
+        sml = "sml";
+        svelte = "svelte";
+        toml = "toml";
+      };
+      cIndent = {
+        filetypes = [ "c" "cpp" ];
+        options = {
+          tabstop = 4;
+          shiftwidth = 4;
+          expandtab = true;
+        };
+      };
+      yankHighlight.timeout = 300;
+    };
+
+    colorscheme = "catppuccin-macchiato";
+    lspServers = map (server: removeAttrs server [ "package" ]) lspServers;
+    ltexExtra = {
+      init_check = false;
+      load_langs = [ "en-US" ];
+      path = ".ltex";
+    };
+
+    blink = {
+      keymap = {
+        preset = "enter";
+        "<C-n>" = [ "select_next" "fallback" ];
+        "<C-p>" = [ "select_prev" "fallback" ];
+        "<Tab>" = [ "snippet_forward" "fallback" ];
+        "<S-Tab>" = [ "snippet_backward" "fallback" ];
+      };
+      completion.documentation.auto_show = true;
+      snippets.preset = "default";
+      sources.default = [ "lsp" "path" "snippets" "buffer" ];
+    };
+
+    mini.modules = [ "icons" "ai" "surround" "comment" "tabline" "statusline" ];
+
+    snacks = {
+      picker.enabled = true;
+      explorer.enabled = true;
+    };
+
+    conform.formatters_by_ft = {
+      nix = [ "nixfmt" ];
+      lua = [ "stylua" ];
+      sh = [ "shfmt" ];
+      bash = [ "shfmt" ];
+      python = [ "ruff_format" ];
+      haskell = [ "fourmolu" ];
+      c = [ "clang_format" ];
+      cpp = [ "clang_format" ];
+      rust = [ "rustfmt" ];
+    };
+
+    codecompanion = {
+      chatWindow = {
+        layout = "vertical";
+        position = "right";
+      };
+      # The adapter reads this environment variable at runtime.
+      adapter = {
+        name = "openai";
+        model = "deepseek/deepseek-v4-flash";
+      };
+      env = {
+        url = "https://inference-api.nousresearch.com/v1";
+        api_key_name = "NOUS_API_KEY";
+      };
+    };
+
+    noice = {
+      lsp.override = {
+        "vim.lsp.util.convert_input_to_markdown_lines" = true;
+        "vim.lsp.util.stylize_markdown" = true;
+      };
+      presets = {
+        bottom_search = true;
+        command_palette = true;
+        long_message_to_split = true;
+        inc_rename = false;
+        lsp_doc_border = false;
+      };
+    };
+  };
+in
 {
-  programs.neovim = let
-    toLua = str: "\n${str}\n";
-    toLuaFile = file: "\n${builtins.readFile file}\n";
-    # toLua = str: "lua << EOF\n${str}\nEOF\n";
-    # toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
-  in {
+  xdg.configFile."nvim/dotfiles-settings.json".text = builtins.toJSON settings;
+  xdg.configFile."nvim/lua/dotfiles/settings.lua".source = ./assets/nvim/lua/dotfiles/settings.lua;
+
+  programs.neovim = {
     enable = true;
 
     withRuby = true;
@@ -19,241 +178,118 @@
     vimAlias = true;
     vimdiffAlias = true;
 
-    extraPackages = with pkgs; [
+    extraPackages = (with pkgs; [
       # AI assistant tooling
       curl
       file
       ripgrep
 
-      # Language servers
-      bash-language-server
-      clang-tools
-      haskell-language-server
-      # Julia LSP — DISABLED 2026-11-14: nixpkgs pins SymbolServer 8.0.1, which
-      # cannot precompile on Julia 1.13.3 (the new julia default) —
-      #   ERROR: LoadError: KeyError: key :_apply not found
-      #   @ SymbolServer/src/symbols.jl:20, from load_core()
-      # Julia 1.13 dropped that Base binding, so it dies in the depot build and
-      # the whole `home-manager switch` fails.
-      # Workaround that IS verified working (built clean): pin just this env to
-      # julia_112, which still resolves SymbolServer fine —
-      #   (julia_112.withPackages [ "LanguageServer" "StaticLint" "SymbolServer" ])
-      # Re-enable (either that pin, or plain julia once SymbolServer ships a
-      # 1.13-compatible release) and delete the matching `warnings` entry below.
-      # (julia.withPackages [
-      #   "LanguageServer"
-      #   "StaticLint"
-      #   "SymbolServer"
-      # ])
-      ltex-ls-plus
-      lua-language-server
-      marksman
-      millet
-      nil
-      pyright
-      rust-analyzer
-      svelte-language-server
-      taplo
-      typescript-language-server
-      vale-ls
-      vscode-langservers-extracted
-      yaml-language-server
-    ];
+      # CLI formatters used by conform.nvim (opt-in with :Format).
+      nixfmt
+      stylua
+      shfmt
+      ruff
+      fourmolu
+    ]) ++ lib.unique (lib.catAttrs "package" lspServers);
 
+    # Plugins are installed and pinned by Nixpkgs; no second plugin manager.
     plugins = with pkgs.vimPlugins; [
+      catppuccin-nvim
+
+      # Modern LSP completion; native vim.snippet removes the LuaSnip dependency.
       {
-        plugin = bufferline-nvim;
+        plugin = blink-cmp;
         type = "lua";
-        config = toLua "require('bufferline').setup{}";
+        config = readLua ./assets/nvim/plugin/blink.lua;
       }
-
       {
-        plugin = catppuccin-nvim;
-        type = "viml";
-        config = "colorscheme catppuccin-macchiato";
-      }
-
-      cmp_luasnip
-      cmp-nvim-lsp
-
-      plenary-nvim
-      {
-        plugin = codecompanion-nvim;
+        plugin = lazydev-nvim;
         type = "lua";
-        config = toLuaFile ./assets/nvim/plugin/codecompanion.lua;
-      }
-
-      {
-        plugin = comment-nvim;
-        type = "lua";
-	      config = toLua "require(\"Comment\").setup()";
-      }
-
-
-
-      lazy-nvim
-      {
-        plugin = lazy-lsp-nvim;
-        type = "lua";
-        config = toLua ''
-          require("lazy-lsp").setup {
-            prefer_local = true,
-            use_vim_lsp_config = true
-          }
-        '';
+        config = readLua ./assets/nvim/plugin/lazydev.lua;
       }
       {
         plugin = nvim-lspconfig;
         type = "lua";
-        config = toLuaFile ./assets/nvim/plugin/lsp.lua;
+        config = readLua ./assets/nvim/plugin/lsp.lua;
       }
-
       ltex_extra-nvim
 
-      luasnip
-      lualine-nvim
-
-      neodev-nvim
+      # Mini replaces Comment.nvim, Bufferline, Lualine and devicons, while
+      # also adding surround and richer text objects.
+      {
+        plugin = mini-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/mini.lua;
+      }
+      # Snacks replaces Telescope/FZF and Neo-tree with one picker/explorer.
+      {
+        plugin = snacks-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/snacks.lua;
+      }
 
       {
-        plugin = neo-tree-nvim;
+        plugin = gitsigns-nvim;
         type = "lua";
-        config = toLua "vim.keymap.set('n', '<Leader>e', '<Cmd>Neotree toggle<CR>', { noremap = true, silent = true })";
+        config = readLua ./assets/nvim/plugin/git.lua;
+      }
+      {
+        plugin = trouble-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/trouble.lua;
+      }
+      {
+        plugin = flash-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/flash.lua;
+      }
+      {
+        plugin = conform-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/format.lua;
+      }
+
+      {
+        plugin = codecompanion-nvim;
+        type = "lua";
+        config = readLua ./assets/nvim/plugin/codecompanion.lua;
       }
 
       {
         plugin = noice-nvim;
         type = "lua";
-        config = toLua ''
-          require("noice").setup({
-            lsp = {
-              override = {
-                ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
-                ["vim.lsp.util.stylize_markdown"] = true,
-                ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
-              },
-            },
-            presets = {
-              bottom_search = true, -- use a classic bottom cmdline for search
-              command_palette = true, -- position the cmdline and popupmenu together
-              long_message_to_split = true, -- long messages will be sent to a split
-              inc_rename = false, -- enables an input dialog for inc-rename.nvim
-              lsp_doc_border = false, -- add a border to hover docs and signature help
-            },
-          })
-        '';
+        config = readLua ./assets/nvim/plugin/noice.lua;
       }
 
-      nvim-cmp 
-      {
-        plugin = nvim-cmp;
-        type = "lua";
-        config = toLuaFile ./assets/nvim/plugin/cmp.lua;
-      }
-
-      nvim-web-devicons
-      
+      # Obsidian requires a user-specific vault/workspace setup; keep installed
+      # for now rather than inventing a vault location in the shared config.
       obsidian-nvim
-
-      persistence-nvim
-
-      telescope-fzf-native-nvim
       {
-        plugin = telescope-nvim;
+        plugin = persistence-nvim;
         type = "lua";
-        config = toLuaFile ./assets/nvim/plugin/telescope.lua;
+        config = readLua ./assets/nvim/plugin/persistence.lua;
       }
 
+      # Preserve all grammars for the existing broad and niche language set.
       {
         plugin = nvim-treesitter.withAllGrammars;
-          #(nvim-treesitter.withPlugins (p: [
-          #  p.tree-sitter-nix
-          #  p.tree-sitter-vim
-          #  p.tree-sitter-bash
-          #  p.tree-sitter-lua
-          #  p.tree-sitter-python
-          #  p.tree-sitter-json
-          #]));
         type = "lua";
-        config = toLuaFile ./assets/nvim/plugin/treesitter.lua;
+        config = readLua ./assets/nvim/plugin/treesitter.lua;
       }
-
-      {
-        plugin = vim-highlightedyank;
-        type = "lua";
-        config = toLua "vim.g.highlightedyank_highlight_duration = 300";
-      }
-
       vim-nix
-
+      vimtex
       {
-        plugin = vimtex;
+        plugin = which-key-nvim;
         type = "lua";
-        config = ''
-          vim.g.vimtex_view_method = "zathura"
-        '';
+        config = readLua ./assets/nvim/plugin/which-key.lua;
       }
-
-      which-key-nvim
     ];
 
-    initLua = ''
-
-      vim.g.mapleader = ' '
-      vim.g.maplocalleader = ' '
-      
-      vim.keymap.set('n', '<Space>', '<Nop>', { noremap = true, silent = true })
-      vim.keymap.set('v', '<Space>', '<Nop>', { noremap = true, silent = true })
-
-      vim.o.clipboard = 'unnamedplus'
-      
-      vim.o.number = true
-      -- vim.o.relativenumber = true
-      
-      vim.o.signcolumn = 'yes'
-      vim.o.splitright = true
-      
-      vim.o.tabstop = 2
-      vim.o.shiftwidth = 2
-      vim.o.expandtab = true
-      
-      vim.o.updatetime = 300
-      
-      vim.o.termguicolors = true
-      
-      vim.o.mouse = 'a'
-
-      vim.cmd('filetype plugin indent on')
-      vim.cmd('syntax enable')
-
-      vim.filetype.add({
-        extension = {
-          cabal = 'cabal',
-          fun = 'sml',
-          hs = 'haskell',
-          lhs = 'lhaskell',
-          nix = 'nix',
-          sig = 'sml',
-          sml = 'sml',
-          svelte = 'svelte',
-          toml = 'toml',
-        },
-      })
-
-      -- C/C++: use a tab size of 4 (everything else stays at 2)
-      vim.api.nvim_create_autocmd('FileType', {
-        pattern = { 'c', 'cpp' },
-        callback = function()
-          vim.opt_local.tabstop = 4
-          vim.opt_local.shiftwidth = 4
-          vim.opt_local.expandtab = true
-        end,
-      })
-    '';
+    initLua = readLua ./assets/nvim/init.lua;
   };
 
   # Self-clearing reminder: delete this entry when the Julia LSP comes back.
   warnings = [
-    "${__curPos.file}:${toString __curPos.line}: TODO: the Julia language server is removed from neovim — nixpkgs' SymbolServer 8.0.1 cannot precompile on Julia 1.13 (`KeyError: key :_apply not found`). Re-enable as (julia_112.withPackages [ \"LanguageServer\" \"StaticLint\" \"SymbolServer\" ]) — verified building — or plain julia once SymbolServer supports 1.13, then delete this warning."
+    "${__curPos.file}:${toString __curPos.line}: TODO: the Julia language server is removed from neovim — nixpkgs' SymbolServer 8.0.1 cannot precompile on Julia 1.13 (`KeyError: key :_apply not found`). Re-enable in lspServers with (julia_112.withPackages [ \"LanguageServer\" \"StaticLint\" \"SymbolServer\" ]) — verified building — or plain julia once SymbolServer supports 1.13, then delete this warning."
   ];
 }

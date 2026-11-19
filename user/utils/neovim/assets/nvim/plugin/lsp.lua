@@ -1,4 +1,5 @@
-local capabilities = require("cmp_nvim_lsp").default_capabilities()
+local lsp_settings = require("dotfiles.settings")
+local capabilities = require("blink.cmp").get_lsp_capabilities()
 
 vim.lsp.config("*", {
   capabilities = capabilities,
@@ -6,31 +7,6 @@ vim.lsp.config("*", {
 
 -- Open diagnostic float for the line under the cursor
 vim.keymap.set("n", "gl", vim.diagnostic.open_float, { desc = "Show diagnostics" })
-
-vim.lsp.config("harper_ls", {
-  settings = {
-    harper_ls = {
-      userDictPath = "~/dict.txt",
-    },
-  },
-})
-
-vim.lsp.config("ltex_plus", {
-  settings = {
-    ltex = {
-      checkFrequency = "save",
-      language = "en-US",
-    },
-  },
-})
-
-vim.lsp.config("eslint", {
-  settings = {
-    workingDirectory = {
-      mode = "auto",
-    },
-  },
-})
 
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(event)
@@ -49,45 +25,37 @@ vim.api.nvim_create_autocmd("LspAttach", {
     bufmap("gI", vim.lsp.buf.implementation)
     bufmap("<leader>D", vim.lsp.buf.type_definition)
 
-    bufmap("gr", require("telescope.builtin").lsp_references)
-    bufmap("<leader>s", require("telescope.builtin").lsp_document_symbols)
-    bufmap("<leader>S", require("telescope.builtin").lsp_dynamic_workspace_symbols)
+    bufmap("gr", function() Snacks.picker.lsp_references() end)
+    bufmap("<leader>s", function() Snacks.picker.lsp_symbols() end)
+    bufmap("<leader>S", function() Snacks.picker.lsp_workspace_symbols() end)
 
     bufmap("K", vim.lsp.buf.hover)
 
-    vim.api.nvim_buf_create_user_command(bufnr, "Format", function()
-      vim.lsp.buf.format()
-    end, { force = true })
-
     if client and client.name:match("ltex") then
-      require("ltex_extra").setup({
-        load_langs = { "en-US" },
-        path = ".ltex",
-      })
+      require("ltex_extra").setup(lsp_settings.ltexExtra)
+      -- ltex_extra's reload looks up the client in the current buffer.
+      vim.schedule(function()
+        if not vim.lsp.buf_is_attached(bufnr, client.id) then
+          return
+        end
+        vim.api.nvim_buf_call(bufnr, function()
+          local commands = require("ltex_extra.commands-lsp")
+          for _, language in ipairs(lsp_settings.ltexExtra.load_langs) do
+            commands.updateConfig("dictionary", language)
+            commands.updateConfig("disabledRules", language)
+            commands.updateConfig("hiddenFalsePositives", language)
+          end
+        end)
+      end)
     end
   end,
 })
 
-vim.lsp.enable({
-  "bashls",
-  "clangd",
-  "cssls",
-  "eslint",
-  "html",
-  "jsonls",
-  "lua_ls",
-  "ltex_plus",
-  "harper_ls",
-  "hls",
-  "julials",
-  "marksman",
-  "millet",
-  "nil_ls",
-  "pyright",
-  "rust_analyzer",
-  "svelte",
-  "taplo",
-  "ts_ls",
-  "vale_ls",
-  "yamlls",
-})
+local servers = {}
+for _, server in ipairs(lsp_settings.lspServers) do
+  if server.settings or server.cmd then
+    vim.lsp.config(server.name, { settings = server.settings, cmd = server.cmd })
+  end
+  table.insert(servers, server.name)
+end
+vim.lsp.enable(servers)
