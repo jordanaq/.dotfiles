@@ -16,7 +16,8 @@ directly; the proxy exists precisely to avoid that).
 
 Everything else in the target file is preserved verbatim: the Ollama /
 localhost / OpenRouter entries, including the `${input:chat.lm.secret.<id>}`
-reference into VS Code's secret storage.
+reference into VS Code's secret storage. A static "Copilot" provider (below)
+is emitted too, so the gpt-6-luna context override survives regeneration.
 
 Usage:
   ./generate-chat-language-models.py                 # CURATED set (below)
@@ -57,6 +58,23 @@ CURATED = [
 ]
 
 MAX_OUTPUT_TOKENS = 32000  # what we ask VS Code to send; capped per model
+
+# Providers emitted verbatim rather than derived from the catalog. VS Code
+# merges these into its own list; the Copilot block raises the context window
+# VS Code assumes for gpt-6-luna so agent mode doesn't truncate early.
+STATIC_PROVIDERS = [
+    {
+        "name": "Copilot",
+        "vendor": "copilot",
+        "settings": {
+            "gpt-6-luna": {"contextSize": 872000},
+        },
+    },
+]
+
+# Provider names this script owns. Every OTHER provider in the target file is
+# kept as-is (so hand-added BYOK entries are not clobbered).
+MANAGED_NAMES = {PROVIDER_NAME} | {p["name"] for p in STATIC_PROVIDERS}
 
 
 def fetch_catalog(base_url: str) -> list[dict]:
@@ -141,8 +159,8 @@ def main() -> int:
 
     out = Path(args.out)
     existing = json.loads(out.read_text()) if out.exists() else []
-    kept = [p for p in existing if p.get("name") != PROVIDER_NAME]
-    result = kept + [provider]
+    kept = [p for p in existing if p.get("name") not in MANAGED_NAMES]
+    result = kept + [provider, *STATIC_PROVIDERS]
 
     if args.dry_run:
         print(json.dumps(provider, indent=1)[:2000])
