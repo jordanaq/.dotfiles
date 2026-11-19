@@ -115,6 +115,12 @@ in {
             "port" = 11434;
             "provider" = "ollama";
           };
+
+          # Let the Julia extension's interrupt binding through to the terminal
+          # instead of being swallowed by the integrated shell.
+          "terminal.integrated.commandsToSkipShell" = [
+            "language-julia.interrupt"
+          ];
           
           "chat.tools.urls.autoApprove" = {
             "https://code.visualstudio.com" = true;
