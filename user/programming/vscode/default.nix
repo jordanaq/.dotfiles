@@ -93,6 +93,15 @@ in {
             "editor.tabSize" = 4;
           };
 
+          # formatOnSave above drives jnoortheen.nix-ide, which shells out to
+          # nixfmt; the absolute store path keeps it off PATH lookup (it was
+          # failing with "spawn nixfmt ENOENT"). Package comes from
+          # user/programming/languages/nix.nix.
+          "nix.formatterPath" = "${pkgs.nixfmt}/bin/nixfmt";
+          "[nix]" = {
+            "editor.defaultFormatter" = "jnoortheen.nix-ide";
+          };
+
           # Elixir settings
           "elixirLS.languageServer.override" = "${pkgs.elixir-ls}/bin/elixir-ls";
           "elixirLS.suggestSpecs" = false;   # auto-@spec suggestions are noisy
