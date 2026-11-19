@@ -75,6 +75,12 @@ in {
 
           "editor.minimap.enabled" = false;
           "editor.semanticHighlighting.enabled" = true;
+          "editor.formatOnSave" = true;
+
+          # The Haskell extension delegates formatting to HLS, which runs
+          # whichever formatter binary this names if it is on PATH
+          # (fourmolu comes from user/programming/languages/haskell.nix).
+          "haskell.formattingProvider" = "fourmolu";
 
           "files.associations" = {
             "*.cabal" = "cabal";
