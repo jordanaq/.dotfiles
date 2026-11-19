@@ -29,11 +29,22 @@
       bash-language-server
       clang-tools
       haskell-language-server
-      (julia.withPackages [
-        "LanguageServer"
-        "StaticLint"
-        "SymbolServer"
-      ])
+      # Julia LSP — DISABLED 2026-11-14: nixpkgs pins SymbolServer 8.0.1, which
+      # cannot precompile on Julia 1.13.3 (the new julia default) —
+      #   ERROR: LoadError: KeyError: key :_apply not found
+      #   @ SymbolServer/src/symbols.jl:20, from load_core()
+      # Julia 1.13 dropped that Base binding, so it dies in the depot build and
+      # the whole `home-manager switch` fails.
+      # Workaround that IS verified working (built clean): pin just this env to
+      # julia_112, which still resolves SymbolServer fine —
+      #   (julia_112.withPackages [ "LanguageServer" "StaticLint" "SymbolServer" ])
+      # Re-enable (either that pin, or plain julia once SymbolServer ships a
+      # 1.13-compatible release) and delete the matching `warnings` entry below.
+      # (julia.withPackages [
+      #   "LanguageServer"
+      #   "StaticLint"
+      #   "SymbolServer"
+      # ])
       ltex-ls-plus
       lua-language-server
       marksman
@@ -240,4 +251,9 @@
       })
     '';
   };
+
+  # Self-clearing reminder: delete this entry when the Julia LSP comes back.
+  warnings = [
+    "${__curPos.file}:${toString __curPos.line}: TODO: the Julia language server is removed from neovim — nixpkgs' SymbolServer 8.0.1 cannot precompile on Julia 1.13 (`KeyError: key :_apply not found`). Re-enable as (julia_112.withPackages [ \"LanguageServer\" \"StaticLint\" \"SymbolServer\" ]) — verified building — or plain julia once SymbolServer supports 1.13, then delete this warning."
+  ];
 }
