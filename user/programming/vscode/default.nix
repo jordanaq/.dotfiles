@@ -30,6 +30,8 @@ in {
           catppuccin.catppuccin-vsc
           catppuccin.catppuccin-vsc-icons
 
+          elixir-lsp.vscode-elixir-ls
+
           github.copilot
           github.copilot-chat
 
@@ -48,6 +50,9 @@ in {
           ms-vsliveshare.vsliveshare
 
           dbaeumer.vscode-eslint
+
+          phoenixframework.phoenix
+
           prettier.prettier-vscode
 
           rust-lang.rust-analyzer
@@ -55,6 +60,8 @@ in {
           svelte.svelte-vscode
 
           tomoki1207.pdf
+
+          usernamehw.errorlens
           
           vadimcn.vscode-lldb
 
@@ -76,6 +83,30 @@ in {
           "editor.minimap.enabled" = false;
           "editor.semanticHighlighting.enabled" = true;
           "editor.formatOnSave" = true;
+
+          # Global default: 2-space indentation (haskell/nix/elixir/elixir-adjacent).
+          # Python is the exception, pinned to 4 below.
+          "editor.tabSize" = 2;
+          "editor.insertSpaces" = true;
+
+          "[python]" = {
+            "editor.tabSize" = 4;
+          };
+
+          # Elixir settings
+          "elixirLS.languageServer.override" = "${pkgs.elixir-ls}/bin/elixir-ls";
+          "elixirLS.suggestSpecs" = false;   # auto-@spec suggestions are noisy
+          "elixirLS.dialyzerEnabled" = true;
+
+          "[elixir]" = {
+            "editor.defaultFormatter" = "JakeBecker.elixir-ls";
+          };
+
+          # Phoenix ext ships the HEEx grammar; emmet needs telling.
+          "emmet.includeLanguages" = {
+            "phoenix-heex" = "html";
+            "html-eex" = "html";
+          };
 
           # The Haskell extension delegates formatting to HLS, which runs
           # whichever formatter binary this names if it is on PATH
