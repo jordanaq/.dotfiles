@@ -11,10 +11,16 @@ nix.settings.experimental-features = [
 ];
 ```
 
-Then, simply clone this repo into your home directory.
+Clone the repository and its submodules into your home directory.
 
 ```bash
-git clone git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
+git clone --recurse-submodules git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
+```
+
+For an existing checkout, initialize the submodules after pulling:
+
+```bash
+git submodule update --init --recursive
 ```
 
 ## Usage
