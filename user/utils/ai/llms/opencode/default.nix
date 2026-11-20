@@ -1,27 +1,14 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   searxPlugin = pkgs.writeTextDir "index.ts" (builtins.readFile ./plugins/searxng/index.ts);
 in
 {
-  # Export the key from ~/.config/nous/secrets.env at login for GUI and
-  # terminal sessions. Run Home Manager after updating the secrets file.
-  home.activation.nousSecretsEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    nous_dir=${config.home.homeDirectory}/.config/nous
-    nous_secrets="$nous_dir/secrets.env"
-    envd=${config.home.homeDirectory}/.config/environment.d
-    mkdir -p "$nous_dir" "$envd"
-    chmod 700 "$nous_dir"
-    if [ -f "$nous_secrets" ]; then
-      chmod 600 "$nous_secrets"
-      key=$(${lib.getExe pkgs.gnused} -n 's/^[[:space:]]*NOUS_API_KEY=[[:space:]]*//p' "$nous_secrets" | head -n1 | tr -d '\r\n')
-      if [ -n "$key" ]; then
-        umask 077
-        printf 'NOUS_API_KEY=%s\n' "$key" > "$envd/10-nous.conf"
-      fi
-    fi
-  '';
-
   programs.opencode = {
     enable = true;
 
@@ -31,11 +18,10 @@ in
 
       providers.nous = {
         name = "Nous Portal";
-        env = [ "NOUS_API_KEY" ];
         package = "@opencode/ai/providers/openai-compatible";
         settings = {
           baseURL = "https://inference-api.nousresearch.com/v1";
-          apiKey = "{env:NOUS_API_KEY}";
+          apiKey = "{file:~/.config/nous/secrets/nous_api_key}";
         };
         models = {
           "~deepseek/deepseek-flash-latest" = { };
