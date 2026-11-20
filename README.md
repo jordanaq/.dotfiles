@@ -16,8 +16,11 @@ nix.settings.experimental-features = [
 Then, simply clone this repo into your home directory.
 
 ```bash
-git clone -b wsl git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
+git clone --recurse-submodules -b wsl git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
 ```
+
+For an existing checkout, run `git submodule update --init --recursive`
+after pulling.
 
 ## Usage
 
@@ -26,7 +29,7 @@ git clone -b wsl git@github.com:jordanaq/.dotfiles.git ~/.dotfiles
 With elevated permissions,
 
 ```bash
-nixos-rebuild switch --upgrade --flake ~/.dotfiles#tsiru-nixos
+nixos-rebuild switch --upgrade --flake "$HOME/.dotfiles?submodules=1#tsiru-nixos"
 ```
 
 ### To update via home-manager

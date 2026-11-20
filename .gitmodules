@@ -1,3 +1,7 @@
 [submodule "assets/images"]
 	path = assets/images
 	url = git@github.com:jordanaq/images.git
+[submodule "user/utils/neovim"]
+	path = user/utils/neovim
+	url = git@github.com:jordanaq/neovim-dotfiles.git
+	branch = main
