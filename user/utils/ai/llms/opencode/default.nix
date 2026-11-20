@@ -12,6 +12,11 @@ in
   programs.opencode = {
     enable = true;
 
+    cli.theme = {
+      name = "catppuccin-macchiato";
+      mode = "dark";
+    };
+
     settings = {
       model = "nous/~deepseek/deepseek-flash-latest";
       plugins = [ "${searxPlugin}" ];
