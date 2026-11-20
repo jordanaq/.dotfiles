@@ -30,7 +30,7 @@ git submodule update --init --recursive
 With elevated permissions,
 
 ```bash
-nixos-rebuild switch --upgrade --flake ~/.dotfiles#tsiru-nixos
+nixos-rebuild switch --upgrade --flake "$HOME/.dotfiles?submodules=1#tsiru-nixos"
 ```
 
 ### To update via home-manager
