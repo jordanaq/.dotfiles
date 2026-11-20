@@ -55,9 +55,8 @@ language-specific formatters.
 
 LTeX+ checks `en-US` prose on save. Markdown and other prose formats use the
 self-hosted LanguageTool server over Tailscale, which receives the text being
-checked. LaTeX, BibTeX, and ConTeXt use the bundled checker locally. Harper
-checks source code and TOML, and Vale checks style in projects with a
-`.vale.ini`.
+checked. LaTeX, BibTeX, and ConTeXt use the bundled checker locally. Vale
+checks style in projects with a `.vale.ini`.
 
 ## Deferred decisions
 

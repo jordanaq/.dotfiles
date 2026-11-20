@@ -54,35 +54,6 @@ let
         languageToolHttpServerUri = "https://tsiru-cloud.tail892cfb.ts.net:8091";
       };
     }
-    {
-      name = "harper_ls";
-      # The harper-web module already provides harper-ls on PATH.
-      # LTeX+ handles prose formats. Keep Harper for source code and TOML.
-      filetypes = [
-        "c"
-        "cpp"
-        "cs"
-        "go"
-        "java"
-        "javascript"
-        "lua"
-        "nix"
-        "python"
-        "ruby"
-        "rust"
-        "swift"
-        "toml"
-        "typescript"
-        "typescriptreact"
-        "haskell"
-        "cmake"
-        "php"
-        "dart"
-        "clojure"
-        "sh"
-      ];
-      settings."harper-ls".userDictPath = "~/dict.txt";
-    }
     { name = "hls"; package = haskell-language-server; }
     # SymbolServer 8.0.1 fails to precompile on Julia 1.13.3.
     # Re-enable with julia_112 or once the default Julia build works.
