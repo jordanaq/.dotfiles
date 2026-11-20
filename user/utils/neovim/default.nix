@@ -3,6 +3,17 @@
 let
   readLua = builtins.readFile;
 
+  # The packaged 1.0.2 release uses the V1 API; upstream main supports OpenCode 2.
+  opencodePlugin = pkgs.vimPlugins.opencode-nvim.overrideAttrs {
+    version = "unstable-2026-10-30";
+    src = pkgs.fetchFromGitHub {
+      owner = "nickjvandyke";
+      repo = "opencode.nvim";
+      rev = "4851ae503585dc5142ad66a98e8952a74e1f7b3a";
+      hash = "sha256-Qhn8hGQ/S6SCV0GxsrS8nAPSq0ndwMNaEYhOw0Mv/Pc=";
+    };
+  };
+
   latexFiletypes = [ "bib" "context" "plaintex" "tex" ];
   englishLtex = {
     checkFrequency = "save";
@@ -158,6 +169,7 @@ let
     };
 
     snacks = {
+      input.enabled = true;
       picker.enabled = true;
       explorer.enabled = true;
     };
@@ -183,22 +195,6 @@ let
       markdown = [ "prettier" ];
       "markdown.mdx" = [ "prettier" ];
       # Svelte's language server supplies the formatter with Svelte parser support.
-    };
-
-    codecompanion = {
-      chatWindow = {
-        layout = "vertical";
-        position = "right";
-      };
-      # The adapter reads this environment variable at runtime.
-      adapter = {
-        name = "openai";
-        model = "deepseek/deepseek-v4-flash";
-      };
-      env = {
-        url = "https://inference-api.nousresearch.com/v1";
-        api_key_name = "NOUS_API_KEY";
-      };
     };
 
     noice = {
@@ -306,9 +302,9 @@ in
       }
 
       {
-        plugin = codecompanion-nvim;
+        plugin = opencodePlugin;
         type = "lua";
-        config = readLua ./assets/nvim/plugin/codecompanion.lua;
+        config = readLua ./assets/nvim/plugin/opencode.lua;
       }
 
       {

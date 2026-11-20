@@ -1,8 +1,8 @@
 # Neovim
 
 Neovim is configured declaratively by Home Manager (`user/utils/neovim/default.nix`).
-Plugin versions come from `flake.lock`/Nixpkgs. Do **not** use `lazy.nvim`
-for a second copy of the plugin inventory.
+Home Manager installs the plugins from Nixpkgs. The OpenCode plugin uses a
+pinned upstream revision for compatibility with OpenCode 2.
 
 Heavily inspired by [Vimjoyer's Neovim guide](https://youtu.be/YZAnJ0rwREA?si=IJYKeHpk4viX1upY).
 
@@ -44,9 +44,16 @@ Heavily inspired by [Vimjoyer's Neovim guide](https://youtu.be/YZAnJ0rwREA?si=IJ
 | `aF`/`iF`, `aC`/`iC`, `aP`/`iP` | Around/inside function, class, or parameter using Tree-sitter captures |
 | `sa`, `sd`, `sr` | Mini surround add/delete/replace |
 | `gc` | Mini comment |
+| `<leader>ot` | Toggle the OpenCode TUI in a Snacks terminal |
+| `<leader>oa` | Ask OpenCode about the visual selection or cursor |
+| `<leader>ox` | Open the OpenCode action picker |
+| `go` + motion, visual `go`, or `goo` | Send a range, selection, or line to OpenCode |
 
-Existing `CodeCompanion` keymaps are unchanged. Blink uses Enter to accept
-completion and Tab/Shift-Tab for snippet navigation.
+OpenCode's Neovim integration targets the most recently updated session for
+the working directory. Use the TUI's `/sessions` and `/models` commands to
+browse sessions and models. Save a file before sending it as context.
+
+Blink uses Enter to accept completion and Tab/Shift-Tab for snippet navigation.
 
 Formatting is **manual**. Prettier handles JavaScript, TypeScript, JSON, YAML,
 and Markdown. Elixir uses `mix format`, and Svelte uses its language server's
@@ -75,6 +82,5 @@ home-manager switch --flake '.?submodules=1#tsiru'
 nvim +checkhealth
 ```
 
-Launch Neovim and test completion, LSP references, project search,
-`:Format`, and CodeCompanion. This patch intentionally does not modify
-`flake.lock` or the Nous Portal API adapter.
+Run `:checkhealth opencode`, open the TUI with `<leader>ot`, and try
+`<leader>oa` on a visual selection.

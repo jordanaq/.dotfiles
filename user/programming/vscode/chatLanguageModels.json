@@ -1,15 +1,5 @@
 [
 	{
-		"name": "http://localhost:11434/v1",
-		"vendor": "customendpoint",
-		"apiType": "chat-completions"
-	},
-	{
-		"name": "Ollama",
-		"vendor": "ollama",
-		"url": "http://localhost:11434"
-	},
-	{
 		"name": "OpenRouter",
 		"vendor": "openrouter",
 		"apiKey": "${input:chat.lm.secret.69e62b32}"

@@ -1,21 +1,6 @@
 { pkgs, ... }:
 
-let
-  marketplaceExtensions = pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-    {
-      publisher = "NishantUnavane";
-      name = "Ollama-Ai-agent";
-      version = "1.3.5";
-      sha256 = "051hj0s0x6mnzc38x12f5lxdrgaiswnr0zy8i58kw91gr6iwg71s";
-    }
-    # {
-    #   publisher = "sst-dev";
-    #   name = "opencode";
-    #   version = "0.0.13";
-    #   sha256 = "sha256-6adXUaoh/OP5yYItH3GAQ7GpupfmTGaxkKP6hYUMYNQ=";
-    # }
-  ];
-in {
+{
   programs.vscode = {
     enable = true;
     profiles = {
@@ -68,7 +53,7 @@ in {
           vitest.explorer
 
           vscodevim.vim
-        ] ++ marketplaceExtensions;
+        ];
 
         userSettings = {
           "vim.useSystemClipboard" = true;
@@ -149,12 +134,6 @@ in {
               "mode" = "auto";
             }
           ];
-
-          "ollamaAgent" = {
-            "host" = "127.0.0.1";
-            "port" = 11434;
-            "provider" = "ollama";
-          };
 
           # Let the Julia extension's interrupt binding through to the terminal
           # instead of being swallowed by the integrated shell.

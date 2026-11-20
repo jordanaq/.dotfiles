@@ -1,15 +1,11 @@
-# Self-hosted Firecrawl (rootless Docker, per-user systemd service).
-#
-# Mirrors the gbrain.nix pattern: copies the compose into ~/.config/firecrawl,
-# generates per-host secrets once into ~/.config/firecrawl/.env (chmod 600),
-# and runs the stack as a `firecrawl.service` user unit that Requires the
-# rootless `docker.service`.
+# Self-hosted Firecrawl under rootless Docker.
 { config, pkgs, lib, ... }:
 
 let
   cfgDir = "${config.home.homeDirectory}/.config/firecrawl";
   envFile = "${cfgDir}/.env";
   composeFile = "${cfgDir}/docker-compose.yaml";
+  searxProxyHostIp = import ../searx-proxy/host-ip.nix { inherit pkgs; };
   # rootless docker-compose shells out to `docker`, so both must be on PATH.
   # curl is needed by the watchdog probe.
   dockerPath = lib.makeBinPath [ pkgs.docker pkgs.docker-compose pkgs.curl ];
@@ -59,7 +55,7 @@ let
 in {
   # Committed compose (no secrets — uses ${...} interpolation).
   home.file.".config/firecrawl/docker-compose.yaml".source =
-    ./firecrawl/docker-compose.yaml;
+    ./docker-compose.yaml;
 
   # Generate secrets once; never overwrite an existing file (so a
   # `home-manager switch` does not rotate live credentials).
@@ -68,17 +64,14 @@ in {
   home.activation.firecrawlSecrets = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${lib.escapeShellArg cfgDir}
     chmod 700 ${lib.escapeShellArg cfgDir}
-    # HM activation runs with a minimal PATH; ensure ip (iproute2) and awk
-    # (gawk) are available so host-IP derivation below works.
-    export PATH="${lib.makeBinPath [ pkgs.iproute2 pkgs.gawk ]}:$PATH"
-    # Host-derived values (not secrets): resolved fresh on every activation so
-    # an IP change self-heals instead of leaving a stale endpoint in .env.
-    host_ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet/{print $2}' | head -1 | cut -d/ -f1)
+    host_ip=$(${searxProxyHostIp})
     [ -z "$host_ip" ] && host_ip=127.0.0.1
     if [ ! -f ${lib.escapeShellArg envFile} ]; then
       pg=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
       rbmq=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
       bull=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')
+      # Firecrawl's extraction tools use the OpenAI-compatible Nous endpoint.
+      # Set OPENAI_API_KEY in the generated .env after first activation.
       printf '%s\n' \
         "PORT=3002" \
         "INTERNAL_PORT=3002" \
@@ -93,15 +86,7 @@ in {
         "ALLOW_LOCAL_WEBHOOKS=false" \
         "MAX_CPU=0.8" \
         "MAX_RAM=0.8" \
-        # LLM via the Nous Portal (OpenAI-compatible inference API). Firecrawl
-        # hardcodes provider="openai" for its extract/summary/query paths, so the
-        # LLM rides on OPENAI_BASE_URL. OPENAI_API_KEY is a SECRET: leave it
-        # empty here, then set it in this generated .env (chmod 600, git-ignored)
-        # after first activation. Home-manager never overwrites an existing .env.
         "MODEL_PROVIDER=openai" \
-        # Rolling deepseek-v4-flash (NOT the -0731 snapshot): the 0731 snapshot
-        # is served by Novita and rejects structured output, which Firecrawl's
-        # LLM extraction requires. The rolling alias supports it (2026-08-12).
         "MODEL_NAME=deepseek/deepseek-v4-flash" \
         "MODEL_EMBEDDING_NAME=google/gemini-embedding-2" \
         "OPENAI_BASE_URL=https://inference-api.nousresearch.com/v1" \
@@ -109,18 +94,17 @@ in {
         > ${lib.escapeShellArg envFile}
       chmod 600 ${lib.escapeShellArg envFile}
     fi
-    # SearXNG now lives on the cloud server, reached through the local
-    # auth-forwarding proxy (searx-proxy.nix, :8889) — same host-IP pattern
-    # so containers reach it via host.docker.internal. Refreshed every
-    # activation so a LAN IP change self-heals on next switch.
-    sed -i '/^SEARXNG_ENDPOINT=/d' ${lib.escapeShellArg envFile} 2>/dev/null || true
+    # Rootless Docker reaches the local SearXNG proxy via the host's LAN IP.
+    # Refresh the endpoint on activation and clear the retired Ollama URL.
+    sed -i '/^SEARXNG_ENDPOINT=/d; /^OLLAMA_BASE_URL=/d; s/^MODEL_PROVIDER=ollama$/MODEL_PROVIDER=openai/' ${lib.escapeShellArg envFile}
     printf 'SEARXNG_ENDPOINT=http://%s:8889\n' "$host_ip" >> ${lib.escapeShellArg envFile}
   '';
 
   systemd.user.services.firecrawl = {
     Unit = {
       Description = "Self-hosted Firecrawl (rootless Docker)";
-      After = [ "docker.service" "network-online.target" ];
+      After = [ "docker.service" "network-online.target" "searx-proxy.service" ];
+      Wants = [ "searx-proxy.service" ];
       Requires = [ "docker.service" ];
       PartOf = [ "docker.service" ];
     };

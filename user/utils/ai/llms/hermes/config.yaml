@@ -1,9 +1,8 @@
 model:
   provider: nous
   default: '~deepseek/deepseek-flash-latest'
-  # base_url intentionally omitted: the `nous` provider resolves its
-  # inference endpoint from auth state / the default Portal URL. Leaving the
-  # stale localhost:11434 base_url would override it.
+  # The `nous` provider resolves its inference endpoint from auth state
+  # or the default Portal URL.
   # The `~` prefix is a real servable portal ID — the "deepseek flash latest"
   # pointer (routes to the newest non-v4 flash weights, currently v4.1-flash,
   # via a structured-output-capable route). Quote it in YAML.
@@ -42,22 +41,18 @@ auxiliary:
 
 web:
   # Self-hosted Firecrawl (http://localhost:3002) handles both search and
-  # extraction. SearXNG still runs locally as Firecrawl's search backend.
+  # extraction. Firecrawl reaches the remote SearXNG server through the
+  # local authentication proxy.
   backend: firecrawl
   use_gateway: false
 
-# Enable Hermes' browser toolset. The `browser` tool spawns `agent-browser`
-# (provided by `pkgs.agent-browser` in `gbrain.nix`). The browser binary
-# itself is pinned to the Nix-wrapped Chromium via
-# `home.sessionVariables.AGENT_BROWSER_EXECUTABLE_PATH`.
+# Hermes uses agent-browser with the Nix-wrapped Chromium from default.nix.
 toolsets:
   enabled:
     - browser
 
-# Hindsight memory provider — local-embedded daemon (data stays on this box),
-# LLM calls routed to Nous Portal (OpenAI-compatible). See gbrain.nix for the
-# venv PYTHONPATH, the hindsight/config.json symlink, and the activation hook
-# that refreshes the rotating Nous key into ~/.hermes/.env.
+# Hindsight stores memory locally and sends LLM calls to Nous Portal.
+# See hindsight/default.nix for the local daemon setup and config file.
 #
 # Only ONE external memory provider may be active; this replaces the built-in
 # MEMORY.md store for cross-session recall.

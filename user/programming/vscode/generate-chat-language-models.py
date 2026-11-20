@@ -14,9 +14,9 @@ itself, so no API key is needed here — and because the request is to
 127.0.0.1, urllib is fine (Cloudflare blocks urllib against the inference API
 directly; the proxy exists precisely to avoid that).
 
-Everything else in the target file is preserved verbatim: the Ollama /
-localhost / OpenRouter entries, including the `${input:chat.lm.secret.<id>}`
-reference into VS Code's secret storage. A static "Copilot" provider (below)
+Other providers keep their settings, including OpenRouter's
+`${input:chat.lm.secret.<id>}` reference into VS Code's secret storage.
+A static "Copilot" provider (below)
 is emitted too, so the gpt-6-luna context override survives regeneration.
 
 Usage:
