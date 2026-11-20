@@ -14,7 +14,8 @@ let
     { name = "bashls"; package = bash-language-server; }
     { name = "clangd"; package = clang-tools; }
     { name = "cssls"; package = vscode-langservers-extracted; }
-    { name = "elixirls"; package = elixir-ls; }
+    # The Elixir language module supplies elixir-ls on PATH.
+    { name = "elixirls"; }
     {
       name = "eslint";
       package = vscode-langservers-extracted;
