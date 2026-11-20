@@ -53,8 +53,25 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
 local servers = {}
 for _, server in ipairs(lsp_settings.lspServers) do
-  if server.settings or server.cmd then
-    vim.lsp.config(server.name, { settings = server.settings, cmd = server.cmd })
+  local overrides = {
+    settings = server.settings,
+    cmd = server.cmd,
+    filetypes = server.filetypes,
+    workspace_required = server.workspace_required,
+  }
+  if server.project_config then
+    overrides.before_init = function(params, config)
+      -- Vale checks unsaved text via stdin, so pass the project's config explicitly.
+      params.initializationOptions = vim.tbl_extend("force", params.initializationOptions or {}, {
+        configPath = vim.fs.joinpath(config.root_dir, server.project_config),
+      })
+    end
+  end
+  if server.base then
+    local base = assert(vim.lsp.config[server.base], server.base)
+    vim.lsp.config(server.name, vim.tbl_deep_extend("force", base, overrides))
+  elseif next(overrides) then
+    vim.lsp.config(server.name, overrides)
   end
   table.insert(servers, server.name)
 end

@@ -3,11 +3,18 @@
 let
   readLua = builtins.readFile;
 
+  latexFiletypes = [ "bib" "context" "plaintex" "tex" ];
+  englishLtex = {
+    checkFrequency = "save";
+    language = "en-US";
+  };
+
   # A server must be listed here for Neovim to enable it.
   lspServers = with pkgs; [
     { name = "bashls"; package = bash-language-server; }
     { name = "clangd"; package = clang-tools; }
     { name = "cssls"; package = vscode-langservers-extracted; }
+    { name = "elixirls"; package = elixir-ls; }
     {
       name = "eslint";
       package = vscode-langservers-extracted;
@@ -17,16 +24,63 @@ let
     { name = "jsonls"; package = vscode-langservers-extracted; }
     { name = "lua_ls"; package = lua-language-server; }
     {
+      # ltex_extra recognizes both ltex and ltex_plus for dictionary commands.
+      name = "ltex";
+      base = "ltex_plus";
+      filetypes = latexFiletypes;
+      settings.ltex = englishLtex;
+    }
+    {
       name = "ltex_plus";
       package = ltex-ls-plus;
-      settings.ltex = {
-        checkFrequency = "save";
-        language = "en-US";
+      filetypes = [
+        "asciidoc"
+        "gitcommit"
+        "html"
+        "markdown"
+        "org"
+        "pandoc"
+        "quarto"
+        "mail"
+        "mdx"
+        "rmd"
+        "rnoweb"
+        "rst"
+        "text"
+        "typst"
+        "xhtml"
+      ];
+      settings.ltex = englishLtex // {
+        languageToolHttpServerUri = "https://tsiru-cloud.tail892cfb.ts.net:8091";
       };
     }
     {
       name = "harper_ls";
       # The harper-web module already provides harper-ls on PATH.
+      # LTeX+ handles prose formats. Keep Harper for source code and TOML.
+      filetypes = [
+        "c"
+        "cpp"
+        "cs"
+        "go"
+        "java"
+        "javascript"
+        "lua"
+        "nix"
+        "python"
+        "ruby"
+        "rust"
+        "swift"
+        "toml"
+        "typescript"
+        "typescriptreact"
+        "haskell"
+        "cmake"
+        "php"
+        "dart"
+        "clojure"
+        "sh"
+      ];
       settings."harper-ls".userDictPath = "~/dict.txt";
     }
     { name = "hls"; package = haskell-language-server; }
@@ -45,7 +99,13 @@ let
     { name = "svelte"; package = svelte-language-server; }
     { name = "taplo"; package = taplo; }
     { name = "ts_ls"; package = typescript-language-server; }
-    { name = "vale_ls"; package = vale-ls; }
+    {
+      name = "vale_ls";
+      package = vale-ls;
+      # Vale needs project rules. Its upstream root marker is .vale.ini.
+      workspace_required = true;
+      project_config = ".vale.ini";
+    }
     { name = "yamlls"; package = yaml-language-server; }
   ];
 
@@ -108,10 +168,22 @@ let
       };
       completion.documentation.auto_show = true;
       snippets.preset = "default";
-      sources.default = [ "lsp" "path" "snippets" "buffer" ];
+      sources = {
+        default = [ "lazydev" "lsp" "path" "snippets" "buffer" ];
+        providers.lazydev = {
+          name = "LazyDev";
+          module = "lazydev.integrations.blink";
+          score_offset = 100;
+        };
+      };
     };
 
     mini.modules = [ "icons" "ai" "surround" "comment" "tabline" "statusline" ];
+    mini.textobjects = {
+      F = { a = "@function.outer"; i = "@function.inner"; };
+      C = { a = "@class.outer"; i = "@class.inner"; };
+      P = { a = "@parameter.outer"; i = "@parameter.inner"; };
+    };
 
     snacks = {
       picker.enabled = true;
@@ -128,6 +200,17 @@ let
       c = [ "clang_format" ];
       cpp = [ "clang_format" ];
       rust = [ "rustfmt" ];
+      elixir = [ "mix" ];
+      javascript = [ "prettier" ];
+      javascriptreact = [ "prettier" ];
+      typescript = [ "prettier" ];
+      typescriptreact = [ "prettier" ];
+      json = [ "prettier" ];
+      jsonc = [ "prettier" ];
+      yaml = [ "prettier" ];
+      markdown = [ "prettier" ];
+      "markdown.mdx" = [ "prettier" ];
+      # Svelte's language server supplies the formatter with Svelte parser support.
     };
 
     codecompanion = {
@@ -190,6 +273,7 @@ in
       shfmt
       ruff
       fourmolu
+      prettier
     ]) ++ lib.unique (lib.catAttrs "package" lspServers);
 
     # Plugins are installed and pinned by Nixpkgs; no second plugin manager.
@@ -276,6 +360,8 @@ in
         type = "lua";
         config = readLua ./assets/nvim/plugin/treesitter.lua;
       }
+      # Query files for mini.ai. Keep the mappings and selection logic in Mini.
+      nvim-treesitter-textobjects
       vim-nix
       vimtex
       {
